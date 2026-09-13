@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  tds:
+    # THREDDS Data Server configuration to be implemented in Stage 1+
+    image: unidata/thredds-docker:latest
+    container_name: sih_tds
+    # Configuration will bind /tds configurations and volume-mount /ingestion/sample_data outputs
+
+  backend:
+    # FastAPI application configuration to be implemented in Stage 1+
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: sih_backend
+    # Configuration will map ports and volume-mount data directories for local development
