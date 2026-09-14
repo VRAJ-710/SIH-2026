@@ -1,112 +1,207 @@
+"""Generate the Stage 1(a) synthetic CF-1.8 NetCDF grid for the TDS WMS spike.
+
+Output: tds/data/amphan_bob_temperature_sample.nc
+Schema: docs/CONTRACTS.md Section 1(b) — dimensions time, depth, lat, lon
+and variables temperature, salinity, current_u, current_v, chlorophyll.
+"""
+
+from __future__ import annotations
+
 import os
+
 import numpy as np
-from scipy.io import netcdf_file
 
-def generate_sample_netcdf():
-    output_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "tds", "data"))
-    os.makedirs(output_dir, exist_ok=True)
-    output_path = os.path.join(output_dir, "amphan_bob_temperature_sample.nc")
+try:
+    from netCDF4 import Dataset
+except ImportError as exc:  # pragma: no cover - environment bootstrap
+    raise SystemExit(
+        "netCDF4 is required. Install with: pip install netCDF4 numpy"
+    ) from exc
 
-    # 1. Coordinate dimensions
-    # Time: 3 steps (2020-05-17T00:00:00Z, 2020-05-18T00:00:00Z, 2020-05-19T00:00:00Z)
-    time_values = np.array([0.0, 24.0, 48.0], dtype=np.float64)  # hours since 2020-05-17 00:00:00 UTC
-    
-    # Depth: 4 levels (0, 10, 25, 50 meters)
-    depth_values = np.array([0.0, 10.0, 25.0, 50.0], dtype=np.float32)
-    
-    # Lat: 8.0 to 23.0 (0.25 deg grid -> 61 points)
-    lat_values = np.linspace(8.0, 23.0, 61, dtype=np.float32)
-    
-    # Lon: 82.0 to 92.0 (0.25 deg grid -> 41 points)
-    lon_values = np.linspace(82.0, 92.0, 41, dtype=np.float32)
+OUTPUT_PATH = os.path.abspath(
+    os.path.join(
+        os.path.dirname(__file__),
+        "..",
+        "tds",
+        "data",
+        "amphan_bob_temperature_sample.nc",
+    )
+)
 
-    n_time = len(time_values)
-    n_depth = len(depth_values)
-    n_lat = len(lat_values)
-    n_lon = len(lon_values)
+# CONTRACTS.md Section 1(b) / spike brief
+TIME_HOURS = np.array([0.0, 24.0, 48.0], dtype=np.float64)  # since 2020-05-17T00:00Z
+DEPTH_M = np.array([0.0, 10.0, 25.0, 50.0], dtype=np.float32)
+LAT = np.linspace(8.0, 23.0, 61, dtype=np.float32)
+LON = np.linspace(82.0, 92.0, 41, dtype=np.float32)
 
-    # 2. Synthetic Temperature Data (~26 - 30 deg C with warm-core Gaussian bump near 14N, 87E)
-    temp_data = np.zeros((n_time, n_depth, n_lat, n_lon), dtype=np.float32)
+
+def _gaussian_bump(lat2d, lon2d, center_lat, center_lon, lat_scale=2.5, lon_scale=2.5):
+    return np.exp(
+        -(((lat2d - center_lat) / lat_scale) ** 2 + ((lon2d - center_lon) / lon_scale) ** 2)
+    )
+
+
+def build_fields():
+    n_time, n_depth, n_lat, n_lon = len(TIME_HOURS), len(DEPTH_M), len(LAT), len(LON)
+    lat2d, lon2d = np.meshgrid(LAT, LON, indexing="ij")
+
+    temperature = np.empty((n_time, n_depth, n_lat, n_lon), dtype=np.float32)
+    salinity = np.empty_like(temperature)
+    current_u = np.empty_like(temperature)
+    current_v = np.empty_like(temperature)
+    chlorophyll = np.empty_like(temperature)
 
     for t_idx in range(n_time):
-        # Center of the warm core shifts northward as Amphan intensifies and tracks north
+        # Warm core migrates slightly N/E so TIME changes are visible in WMS
         center_lat = 14.0 + t_idx * 1.5
-        center_lon = 87.0 + t_idx * 0.2
+        center_lon = 87.0 + t_idx * 0.4
+        bump = _gaussian_bump(lat2d, lon2d, center_lat, center_lon)
 
-        for d_idx, depth in enumerate(depth_values):
-            # Base temperature drops with depth: 30C at surface, ~25C at 50m
-            base_temp = 30.0 - (depth / 50.0) * 4.5
+        for d_idx, depth in enumerate(DEPTH_M):
+            depth_frac = float(depth) / 50.0
+            base_temp = 30.0 - depth_frac * 4.5  # ~30 C surface, ~25.5 C at 50 m
+            warm_anomaly = 2.5 * bump * (1.0 - float(depth) / 70.0)
+            lat_gradient = -0.05 * (lat2d - 15.0)
+            temperature[t_idx, d_idx] = base_temp + warm_anomaly + lat_gradient
 
-            for i, lat in enumerate(lat_values):
-                for j, lon in enumerate(lon_values):
-                    dist_sq = ((lat - center_lat) / 2.5) ** 2 + ((lon - center_lon) / 2.5) ** 2
-                    # Warm-core anomaly (+2.5 deg C at surface, attenuates with depth)
-                    warm_anomaly = 2.5 * np.exp(-dist_sq) * (1.0 - depth / 70.0)
-                    # Natural latitudinal gradient (slightly cooler north)
-                    lat_gradient = -0.05 * (lat - 15.0)
+            salinity[t_idx, d_idx] = 33.5 + 0.4 * (lat2d - 15.0) / 15.0 - 0.2 * bump
+            current_u[t_idx, d_idx] = 0.15 * np.sin((lon2d - 87.0) / 2.0) * (1.0 - 0.3 * depth_frac)
+            current_v[t_idx, d_idx] = 0.10 * np.cos((lat2d - 14.0) / 3.0) * (1.0 - 0.3 * depth_frac)
+            chlorophyll[t_idx, d_idx] = 0.08 + 0.35 * bump * np.exp(-depth_frac * 1.5)
 
-                    temp_data[t_idx, d_idx, i, j] = base_temp + warm_anomaly + lat_gradient
+    return temperature, salinity, current_u, current_v, chlorophyll
 
-    # 3. Create NetCDF file (version 2 / 64-bit offset)
-    f = netcdf_file(output_path, 'w', version=2)
 
-    f.createDimension('time', n_time)
-    f.createDimension('depth', n_depth)
-    f.createDimension('lat', n_lat)
-    f.createDimension('lon', n_lon)
+def _coord(ds, name, values, dtype, dims, **attrs):
+    var = ds.createVariable(name, dtype, dims)
+    var[:] = values
+    for key, value in attrs.items():
+        setattr(var, key, value)
+    return var
 
-    # Time coordinate
-    time_var = f.createVariable('time', 'd', ('time',))
-    time_var[:] = time_values
-    time_var.standard_name = 'time'
-    time_var.long_name = 'time'
-    time_var.units = 'hours since 2020-05-17 00:00:00 UTC'
-    time_var.calendar = 'gregorian'
-    time_var.axis = 'T'
 
-    # Depth coordinate: MUST have positive = 'down' per CF-1.8 and CONTRACTS.md Section 1(b)
-    depth_var = f.createVariable('depth', 'f', ('depth',))
-    depth_var[:] = depth_values
-    depth_var.standard_name = 'depth'
-    depth_var.long_name = 'depth below sea surface'
-    depth_var.units = 'm'
-    depth_var.positive = 'down'
-    depth_var.axis = 'Z'
+def generate_sample_netcdf(output_path: str = OUTPUT_PATH) -> str:
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    temperature, salinity, current_u, current_v, chlorophyll = build_fields()
 
-    # Latitude coordinate
-    lat_var = f.createVariable('lat', 'f', ('lat',))
-    lat_var[:] = lat_values
-    lat_var.standard_name = 'latitude'
-    lat_var.long_name = 'Latitude'
-    lat_var.units = 'degrees_north'
-    lat_var.axis = 'Y'
+    if os.path.exists(output_path):
+        os.remove(output_path)
 
-    # Longitude coordinate
-    lon_var = f.createVariable('lon', 'f', ('lon',))
-    lon_var[:] = lon_values
-    lon_var.standard_name = 'longitude'
-    lon_var.long_name = 'Longitude'
-    lon_var.units = 'degrees_east'
-    lon_var.axis = 'X'
+    # NETCDF3_CLASSIC: maximum TDS/ncWMS compatibility for a small spike grid
+    with Dataset(output_path, "w", format="NETCDF3_CLASSIC") as ds:
+        ds.createDimension("time", len(TIME_HOURS))
+        ds.createDimension("depth", len(DEPTH_M))
+        ds.createDimension("lat", len(LAT))
+        ds.createDimension("lon", len(LON))
 
-    # Temperature variable
-    temp_var = f.createVariable('temperature', 'f', ('time', 'depth', 'lat', 'lon'))
-    temp_var[:] = temp_data
-    temp_var.standard_name = 'sea_water_temperature'
-    temp_var.long_name = 'Sea Water Temperature'
-    temp_var.units = 'degrees_C'
-    temp_var._FillValue = np.float32(-9999.0)
+        _coord(
+            ds,
+            "time",
+            TIME_HOURS,
+            "f8",
+            ("time",),
+            standard_name="time",
+            long_name="time",
+            units="hours since 2020-05-17 00:00:00 UTC",
+            calendar="gregorian",
+            axis="T",
+        )
+        # CONTRACTS.md Section 1(b): positive="down" is required for ELEVATION
+        _coord(
+            ds,
+            "depth",
+            DEPTH_M,
+            "f4",
+            ("depth",),
+            standard_name="depth",
+            long_name="depth below sea surface",
+            units="m",
+            positive="down",
+            axis="Z",
+        )
+        _coord(
+            ds,
+            "lat",
+            LAT,
+            "f4",
+            ("lat",),
+            standard_name="latitude",
+            long_name="Latitude",
+            units="degrees_north",
+            axis="Y",
+        )
+        _coord(
+            ds,
+            "lon",
+            LON,
+            "f4",
+            ("lon",),
+            standard_name="longitude",
+            long_name="Longitude",
+            units="degrees_east",
+            axis="X",
+        )
 
-    # Global attributes (CF-1.8 standard compliant)
-    f.Conventions = 'CF-1.8'
-    f.title = 'Synthetic Bay of Bengal Temperature Field - Super Cyclone Amphan Spike'
-    f.institution = 'INCOIS / SIH-2026'
-    f.source = 'Synthetic warm-core test grid for TDS WMS Cesium spike'
-    f.history = 'Generated by spike_generate_sample_netcdf.py'
+        fill = np.float32(-9999.0)
+        grid_vars = {
+            "temperature": (
+                temperature,
+                "sea_water_temperature",
+                "Sea Water Temperature",
+                "degree_C",
+            ),
+            "salinity": (
+                salinity,
+                "sea_water_practical_salinity",
+                "Sea Water Practical Salinity",
+                "1e-3",
+            ),
+            "current_u": (
+                current_u,
+                "eastward_sea_water_velocity",
+                "Eastward Sea Water Velocity",
+                "m s-1",
+            ),
+            "current_v": (
+                current_v,
+                "northward_sea_water_velocity",
+                "Northward Sea Water Velocity",
+                "m s-1",
+            ),
+            "chlorophyll": (
+                chlorophyll,
+                "mass_concentration_of_chlorophyll_a_in_sea_water",
+                "Chlorophyll-a Concentration",
+                "mg m-3",
+            ),
+        }
 
-    f.close()
-    print(f"Successfully generated NetCDF file at: {output_path}")
-    print(f"File size: {os.path.getsize(output_path)} bytes")
+        for name, (data, standard_name, long_name, units) in grid_vars.items():
+            var = ds.createVariable(
+                name,
+                "f4",
+                ("time", "depth", "lat", "lon"),
+                fill_value=fill,
+            )
+            var[:] = data
+            var.standard_name = standard_name
+            var.long_name = long_name
+            var.units = units
+            var.coordinates = "time depth lat lon"
+
+        ds.Conventions = "CF-1.8"
+        ds.title = "Synthetic Bay of Bengal grid — Super Cyclone Amphan Stage 1(a) spike"
+        ds.institution = "INCOIS / SIH-2026"
+        ds.source = "Synthetic warm-core test grid for TDS WMS Cesium spike"
+        ds.history = "Generated by spike_generate_sample_netcdf.py"
+        ds.comment = (
+            "temperature includes a Gaussian warm-core bump near 14N, 87E "
+            "that migrates north with time so WMS TIME/ELEVATION changes are visible."
+        )
+
+    return output_path
+
 
 if __name__ == "__main__":
-    generate_sample_netcdf()
+    path = generate_sample_netcdf()
+    print(f"Wrote {path} ({os.path.getsize(path)} bytes)")

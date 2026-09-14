@@ -4,13 +4,12 @@
     <name>INCOIS TDS Spike Server</name>
     <logoUrl></logoUrl>
     <logoAltText></logoAltText>
-    <abstract>THREDDS Data Server for Ocean Data Visualization Spike</abstract>
+    <abstract>THREDDS Data Server for the Stage 1(a) TDS-WMS-Cesium spike</abstract>
   </serverInformation>
 
   <WMS>
     <allow>true</allow>
-    <allowRemote>true</allowRemote>
-    <paletteLocationDir>/usr/local/tomcat/content/thredds/palettes</paletteLocationDir>
+    <allowRemote>false</allowRemote>
     <maxImageWidth>2048</maxImageWidth>
     <maxImageHeight>2048</maxImageHeight>
   </WMS>

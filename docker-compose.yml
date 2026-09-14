@@ -1,16 +1,21 @@
-version: '3.8'
-
 services:
   tds:
-    image: unidata/thredds-docker:latest
+    image: unidata/thredds-docker:5.8
     container_name: sih_tds
     ports:
       - "8080:8080"
+    environment:
+      # Spike grid is tiny; default 4G heap is unnecessary on a laptop.
+      THREDDS_XMX_SIZE: 1G
+      THREDDS_XMS_SIZE: 512m
     volumes:
+      # Individual config files + writable cache/logs (Unidata recommendation).
       - ./tds/config/catalog.xml:/usr/local/tomcat/content/thredds/catalog.xml:ro
       - ./tds/config/threddsConfig.xml:/usr/local/tomcat/content/thredds/threddsConfig.xml:ro
       - ./tds/config/wmsConfig.xml:/usr/local/tomcat/content/thredds/wmsConfig.xml:ro
-      - ./tds/data:/usr/local/tomcat/content/thredds/public/testdata:ro
+      - ./tds/cache:/usr/local/tomcat/content/thredds/cache
+      - ./tds/logs:/usr/local/tomcat/content/thredds/logs
+      - ./tds/data:/data:ro
     restart: unless-stopped
 
   backend:
@@ -20,3 +25,5 @@ services:
     container_name: sih_backend
     ports:
       - "8000:8000"
+    profiles:
+      - backend

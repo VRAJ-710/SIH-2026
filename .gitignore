@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Node
+frontend/node_modules/
+frontend/dist/
+
+# TDS runtime (writable mounts)
+tds/cache/
+tds/logs/
+
+# Secrets
+.env
+.env.*
+
+# Large / raw data (keep the tiny synthetic spike sample)
+*.nc
+!tds/data/amphan_bob_temperature_sample.nc
+!ingestion/sample_data/**
