@@ -25,3 +25,10 @@
 - **Offline & Cached Fallback:** The application must work fully offline for live demos. All external data ingestion tools must support reading from cached local files under `/ingestion/sample_data` when live APIs (Copernicus, argopy) are unavailable or slow.
 - **No Large Data Commits:** Never commit real, raw data files to the repository. Only store small, processed sample files in `/ingestion/sample_data` for integration testing.
 - **TDS Configuration Harmony:** Grid datasets ingested into NetCDF must follow the CF-1.8 standard with dimensions `time`, `depth`, `lat`, `lon` and variables `temperature`, `salinity`, `current_u`, `current_v`, `chlorophyll`. Any divergence will break THREDDS WMS layer mapping.
+## File Encoding
+All generated text files (code, config, CSS, markdown) must be written as UTF-8 without
+a byte-order mark. Never UTF-16.
+## Tailwind CSS v4
+This project uses Tailwind v4. The PostCSS plugin package is `@tailwindcss/postcss`,
+NOT `tailwindcss` directly — using `tailwindcss: {}` in postcss.config.js is a v3-style
+config and will fail.
