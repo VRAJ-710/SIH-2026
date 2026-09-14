@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wmsConfig xmlns="http://www.unidata.ucar.edu/namespaces/thredds/ncwms">
+  <server>
+    <maxImageWidth>2048</maxImageWidth>
+    <maxImageHeight>2048</maxImageHeight>
+    <allowFeatureInfo>true</allowFeatureInfo>
+    <defaultColorScaleRange>-50 50</defaultColorScaleRange>
+    <defaultPaletteName>rainbow</defaultPaletteName>
+    <defaultNumColorBands>254</defaultNumColorBands>
+    <logExceptions>false</logExceptions>
+  </server>
+</wmsConfig>

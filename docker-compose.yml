@@ -2,15 +2,21 @@ version: '3.8'
 
 services:
   tds:
-    # THREDDS Data Server configuration to be implemented in Stage 1+
     image: unidata/thredds-docker:latest
     container_name: sih_tds
-    # Configuration will bind /tds configurations and volume-mount /ingestion/sample_data outputs
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./tds/config/catalog.xml:/usr/local/tomcat/content/thredds/catalog.xml:ro
+      - ./tds/config/threddsConfig.xml:/usr/local/tomcat/content/thredds/threddsConfig.xml:ro
+      - ./tds/config/wmsConfig.xml:/usr/local/tomcat/content/thredds/wmsConfig.xml:ro
+      - ./tds/data:/usr/local/tomcat/content/thredds/public/testdata:ro
+    restart: unless-stopped
 
   backend:
-    # FastAPI application configuration to be implemented in Stage 1+
     build:
       context: ./backend
       dockerfile: Dockerfile
     container_name: sih_backend
-    # Configuration will map ports and volume-mount data directories for local development
+    ports:
+      - "8000:8000"
