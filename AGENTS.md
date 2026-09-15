@@ -32,3 +32,8 @@ a byte-order mark. Never UTF-16.
 This project uses Tailwind v4. The PostCSS plugin package is `@tailwindcss/postcss`,
 NOT `tailwindcss` directly — using `tailwindcss: {}` in postcss.config.js is a v3-style
 config and will fail.
+## Real vs Synthetic Depth Levels
+Stage 1's frontend depth buttons are hardcoded to the synthetic sample's 0/10/25/50m.
+Real GLORYS12 data uses different, non-round depth levels (0.494m first level, up to
+~5728m). Stage 5 must read actual available depth levels from the real dataset rather
+than reusing Stage 1's hardcoded values.

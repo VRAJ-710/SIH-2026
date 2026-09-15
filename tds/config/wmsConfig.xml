@@ -37,5 +37,51 @@
         </variable>
       </variables>
     </datasetPath>
+
+    <!-- Stage 2: Real GLORYS12V1 data overrides -->
+    <datasetPath pathSpec="amphan_bob_real/temperature">
+      <pathDefaults>
+        <allowFeatureInfo>true</allowFeatureInfo>
+        <defaultPaletteName>x-Rainbow</defaultPaletteName>
+      </pathDefaults>
+      <variables>
+        <variable id="temperature">
+          <defaultColorScaleRange>25 33</defaultColorScaleRange>
+        </variable>
+      </variables>
+    </datasetPath>
+    <datasetPath pathSpec="amphan_bob_real/salinity">
+      <pathDefaults>
+        <allowFeatureInfo>true</allowFeatureInfo>
+        <defaultPaletteName>psu-viridis</defaultPaletteName>
+      </pathDefaults>
+      <variables>
+        <variable id="salinity">
+          <defaultColorScaleRange>28 36</defaultColorScaleRange>
+        </variable>
+      </variables>
+    </datasetPath>
+    <datasetPath pathSpec="amphan_bob_real/current_u">
+      <pathDefaults>
+        <allowFeatureInfo>true</allowFeatureInfo>
+        <defaultPaletteName>psu-viridis</defaultPaletteName>
+      </pathDefaults>
+      <variables>
+        <variable id="current_u">
+          <defaultColorScaleRange>-1 1</defaultColorScaleRange>
+        </variable>
+      </variables>
+    </datasetPath>
+    <datasetPath pathSpec="amphan_bob_real/current_v">
+      <pathDefaults>
+        <allowFeatureInfo>true</allowFeatureInfo>
+        <defaultPaletteName>psu-viridis</defaultPaletteName>
+      </pathDefaults>
+      <variables>
+        <variable id="current_v">
+          <defaultColorScaleRange>-1 1</defaultColorScaleRange>
+        </variable>
+      </variables>
+    </datasetPath>
   </overrides>
 </wmsConfig>

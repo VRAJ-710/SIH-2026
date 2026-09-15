@@ -20,3 +20,7 @@ tds/logs/
 *.nc
 !tds/data/amphan_bob_temperature_sample.nc
 !ingestion/sample_data/**
+
+# Ingestion intermediate / regenerable outputs
+ingestion/cache/
+ingestion/output/

@@ -25,4 +25,55 @@
     <netcdf xmlns="http://www.unidata.ucar.edu/namespaces/netcdf/ncml-2.2"
             location="/data/amphan_bob_temperature_sample.nc" />
   </dataset>
+
+  <!--
+    Stage 2: Real GLORYS12V1 reanalysis data (2020-05-13 to 2020-05-25).
+    amphan_bob_real.nc is gitignored and must be generated locally by
+    running `python ingestion/ingest_glorys12.py` before docker compose up.
+    Each variable is a separate TDS dataset so the WMS endpoint matches
+    CONTRACTS.md Section 2: /thredds/wms/amphan_bob_real/{variable}
+  -->
+  <dataset name="Amphan Real — Temperature (GLORYS12V1)"
+           ID="amphan_bob_real/temperature"
+           urlPath="amphan_bob_real/temperature">
+    <metadata inherited="true">
+      <serviceName>all</serviceName>
+      <dataType>Grid</dataType>
+    </metadata>
+    <netcdf xmlns="http://www.unidata.ucar.edu/namespaces/netcdf/ncml-2.2"
+            location="/data/amphan_bob_real.nc" />
+  </dataset>
+
+  <dataset name="Amphan Real — Salinity (GLORYS12V1)"
+           ID="amphan_bob_real/salinity"
+           urlPath="amphan_bob_real/salinity">
+    <metadata inherited="true">
+      <serviceName>all</serviceName>
+      <dataType>Grid</dataType>
+    </metadata>
+    <netcdf xmlns="http://www.unidata.ucar.edu/namespaces/netcdf/ncml-2.2"
+            location="/data/amphan_bob_real.nc" />
+  </dataset>
+
+  <dataset name="Amphan Real — Eastward Current (GLORYS12V1)"
+           ID="amphan_bob_real/current_u"
+           urlPath="amphan_bob_real/current_u">
+    <metadata inherited="true">
+      <serviceName>all</serviceName>
+      <dataType>Grid</dataType>
+    </metadata>
+    <netcdf xmlns="http://www.unidata.ucar.edu/namespaces/netcdf/ncml-2.2"
+            location="/data/amphan_bob_real.nc" />
+  </dataset>
+
+  <dataset name="Amphan Real — Northward Current (GLORYS12V1)"
+           ID="amphan_bob_real/current_v"
+           urlPath="amphan_bob_real/current_v">
+    <metadata inherited="true">
+      <serviceName>all</serviceName>
+      <dataType>Grid</dataType>
+    </metadata>
+    <netcdf xmlns="http://www.unidata.ucar.edu/namespaces/netcdf/ncml-2.2"
+            location="/data/amphan_bob_real.nc" />
+  </dataset>
 </catalog>
