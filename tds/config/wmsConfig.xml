@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE wmsConfig SYSTEM "https://schemas.unidata.ucar.edu/thredds/dtd/ncwms/wmsConfig_2_0.dtd">
+<wmsConfig>
+  <global>
+    <defaults>
+      <allowFeatureInfo>true</allowFeatureInfo>
+      <defaultColorScaleRange>-50 50</defaultColorScaleRange>
+      <defaultAboveMaxColor>extend</defaultAboveMaxColor>
+      <defaultBelowMinColor>extend</defaultBelowMinColor>
+      <defaultNoDataColor>transparent</defaultNoDataColor>
+      <defaultOpacity>100</defaultOpacity>
+      <defaultPaletteName>psu-viridis</defaultPaletteName>
+      <defaultNumColorBands>20</defaultNumColorBands>
+      <logScaling>false</logScaling>
+      <intervalTime>false</intervalTime>
+    </defaults>
+    <standardNames>
+      <!-- Sample file stores temperature in degree_C (~25-33), not Kelvin. -->
+      <standardName name="sea_water_temperature" units="degree_C">
+        <defaultColorScaleRange>25 33</defaultColorScaleRange>
+        <defaultPaletteName>x-Rainbow</defaultPaletteName>
+      </standardName>
+      <standardName name="sea_water_temperature" units="K">
+        <defaultColorScaleRange>268 308</defaultColorScaleRange>
+      </standardName>
+    </standardNames>
+  </global>
+  <overrides>
+    <datasetPath pathSpec="amphan_bob/temperature">
+      <pathDefaults>
+        <allowFeatureInfo>true</allowFeatureInfo>
+        <defaultPaletteName>x-Rainbow</defaultPaletteName>
+      </pathDefaults>
+      <variables>
+        <variable id="temperature">
+          <defaultColorScaleRange>25 33</defaultColorScaleRange>
+        </variable>
+      </variables>
+    </datasetPath>
+  </overrides>
+</wmsConfig>

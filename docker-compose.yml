@@ -1,16 +1,29 @@
-version: '3.8'
-
 services:
   tds:
-    # THREDDS Data Server configuration to be implemented in Stage 1+
-    image: unidata/thredds-docker:latest
+    image: unidata/thredds-docker:5.8
     container_name: sih_tds
-    # Configuration will bind /tds configurations and volume-mount /ingestion/sample_data outputs
+    ports:
+      - "8080:8080"
+    environment:
+      # Spike grid is tiny; default 4G heap is unnecessary on a laptop.
+      THREDDS_XMX_SIZE: 1G
+      THREDDS_XMS_SIZE: 512m
+    volumes:
+      # Individual config files + writable cache/logs (Unidata recommendation).
+      - ./tds/config/catalog.xml:/usr/local/tomcat/content/thredds/catalog.xml:ro
+      - ./tds/config/threddsConfig.xml:/usr/local/tomcat/content/thredds/threddsConfig.xml:ro
+      - ./tds/config/wmsConfig.xml:/usr/local/tomcat/content/thredds/wmsConfig.xml:ro
+      - ./tds/cache:/usr/local/tomcat/content/thredds/cache
+      - ./tds/logs:/usr/local/tomcat/content/thredds/logs
+      - ./tds/data:/data:ro
+    restart: unless-stopped
 
   backend:
-    # FastAPI application configuration to be implemented in Stage 1+
     build:
       context: ./backend
       dockerfile: Dockerfile
     container_name: sih_backend
-    # Configuration will map ports and volume-mount data directories for local development
+    ports:
+      - "8000:8000"
+    profiles:
+      - backend

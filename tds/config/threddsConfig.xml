@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<threddsConfig>
+  <serverInformation>
+    <name>INCOIS TDS Spike Server</name>
+    <logoUrl></logoUrl>
+    <logoAltText></logoAltText>
+    <abstract>THREDDS Data Server for the Stage 1(a) TDS-WMS-Cesium spike</abstract>
+  </serverInformation>
+
+  <WMS>
+    <allow>true</allow>
+    <allowRemote>false</allowRemote>
+    <maxImageWidth>2048</maxImageWidth>
+    <maxImageHeight>2048</maxImageHeight>
+  </WMS>
+
+  <WCS>
+    <allow>true</allow>
+  </WCS>
+
+  <NCISO>
+    <ncmlAllow>true</ncmlAllow>
+  </NCISO>
+
+  <CORS>
+    <enabled>true</enabled>
+    <maxAge>1728000</maxAge>
+    <allowedMethods>GET</allowedMethods>
+    <allowedHeaders>Authorization</allowedHeaders>
+    <allowedOrigin>*</allowedOrigin>
+  </CORS>
+</threddsConfig>

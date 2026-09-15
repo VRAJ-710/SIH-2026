@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<catalog name="INCOIS TDS Spike Catalog"
+         xmlns="http://www.unidata.ucar.edu/namespaces/thredds/InvCatalog/v1.0"
+         xmlns:xlink="http://www.w3.org/1999/xlink">
+
+  <service name="all" serviceType="Compound" base="">
+    <service name="odap" serviceType="OpenDAP" base="/thredds/dodsC/" />
+    <service name="wms" serviceType="WMS" base="/thredds/wms/" />
+    <service name="wcs" serviceType="WCS" base="/thredds/wcs/" />
+    <service name="http" serviceType="HTTPServer" base="/thredds/fileServer/" />
+  </service>
+
+  <!--
+    Dataset ID and urlPath are both amphan_bob/temperature so the WMS endpoint
+    is exactly http://localhost:8080/thredds/wms/amphan_bob/temperature
+    (CONTRACTS.md Section 2). NcML maps that virtual path onto the sample file.
+  -->
+  <dataset name="Amphan Bay of Bengal Temperature Sample"
+           ID="amphan_bob/temperature"
+           urlPath="amphan_bob/temperature">
+    <metadata inherited="true">
+      <serviceName>all</serviceName>
+      <dataType>Grid</dataType>
+    </metadata>
+    <netcdf xmlns="http://www.unidata.ucar.edu/namespaces/netcdf/ncml-2.2"
+            location="/data/amphan_bob_temperature_sample.nc" />
+  </dataset>
+</catalog>
