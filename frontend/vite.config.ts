@@ -7,5 +7,13 @@ export default defineConfig({
   server: {
     port: 5173,
     host: true,
+    proxy: {
+      // Proxy /thredds to the TDS container so the browser sees same-origin
+      // requests and CORS never applies during local development.
+      '/thredds': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+      },
+    },
   },
 });

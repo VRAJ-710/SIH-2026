@@ -10,7 +10,7 @@ const TIME_STEPS = [
 ];
 
 const AMPHAN_RECTANGLE = Cesium.Rectangle.fromDegrees(82.0, 8.0, 92.0, 23.0);
-const TDS_WMS_URL = 'http://localhost:8080/thredds/wms/amphan_bob/temperature';
+const TDS_WMS_URL = '/thredds/wms/amphan_bob/temperature';
 
 export default function App() {
   const containerRef = useRef<HTMLDivElement>(null);
