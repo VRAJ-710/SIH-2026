@@ -92,18 +92,25 @@ class DataStore:
 
         df = self._df
 
+        # We build a mask for bbox and time_range, but explicitly exempt 
+        # 'glider' (and optionally 'buoy') sample data so they always appear 
+        # for illustrative purposes even if they fall outside the strict Amphan slice.
+        mask = pd.Series(True, index=df.index)
+
         # Filter bbox
         if bbox:
             try:
                 parts = [float(p.strip()) for p in bbox.split(",")]
                 if len(parts) == 4:
                     min_lat, min_lon, max_lat, max_lon = parts
-                    df = df[
+                    bbox_mask = (
                         (df["lat"] >= min_lat)
                         & (df["lat"] <= max_lat)
                         & (df["lon"] >= min_lon)
                         & (df["lon"] <= max_lon)
-                    ]
+                    )
+                    # Exempt gliders from bbox restriction
+                    mask = mask & (bbox_mask | (df["instrument_type"] == "glider"))
             except Exception as exc:
                 logger.warning("Invalid bbox '%s': %s", bbox, exc)
 
@@ -113,9 +120,13 @@ class DataStore:
                 t_parts = [p.strip() for p in time_range.split(",")]
                 if len(t_parts) == 2:
                     start_time, end_time = t_parts
-                    df = df[(df["time"] >= start_time) & (df["time"] <= end_time)]
+                    time_mask = (df["time"] >= start_time) & (df["time"] <= end_time)
+                    # Exempt gliders from time restriction
+                    mask = mask & (time_mask | (df["instrument_type"] == "glider"))
             except Exception as exc:
                 logger.warning("Invalid time_range '%s': %s", time_range, exc)
+        
+        df = df[mask]
 
         # Filter instrument_type
         if instrument_type:
