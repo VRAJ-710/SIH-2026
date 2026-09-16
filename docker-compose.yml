@@ -25,5 +25,4 @@ services:
     container_name: sih_backend
     ports:
       - "8000:8000"
-    profiles:
-      - backend
+    restart: unless-stopped

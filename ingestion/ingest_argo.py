@@ -220,7 +220,7 @@ def transform_to_point_schema(
             temp_df = temp_df.rename(columns={"latitude": "lat", "longitude": "lon", "pres": "depth"})
             temp_df["variable"] = "temperature"
             temp_df["value"] = core_df.loc[temp_mask, "temp"].values
-            temp_df["instrument_id"] = temp_df["platform_number"].astype(str)
+            temp_df["instrument_id"] = temp_df["platform_number"].astype(str).str.replace(r"\.0$", "", regex=True)
             temp_df["instrument_type"] = "argo"
             temp_df = temp_df.drop(columns=["platform_number"])
             frames.append(temp_df)
@@ -233,7 +233,7 @@ def transform_to_point_schema(
             sal_df = sal_df.rename(columns={"latitude": "lat", "longitude": "lon", "pres": "depth"})
             sal_df["variable"] = "salinity"
             sal_df["value"] = core_df.loc[sal_mask, "psal"].values
-            sal_df["instrument_id"] = sal_df["platform_number"].astype(str)
+            sal_df["instrument_id"] = sal_df["platform_number"].astype(str).str.replace(r"\.0$", "", regex=True)
             sal_df["instrument_type"] = "argo"
             sal_df = sal_df.drop(columns=["platform_number"])
             frames.append(sal_df)
@@ -251,7 +251,7 @@ def transform_to_point_schema(
             chl_df = chl_df.rename(columns={"latitude": "lat", "longitude": "lon", "pres": "depth"})
             chl_df["variable"] = "chlorophyll"
             chl_df["value"] = bgc_df.loc[chl_mask, "chla_adjusted"].values
-            chl_df["instrument_id"] = chl_df["platform_number"].astype(str)
+            chl_df["instrument_id"] = chl_df["platform_number"].astype(str).str.replace(r"\.0$", "", regex=True)
             chl_df["instrument_type"] = "argo"
             chl_df = chl_df.drop(columns=["platform_number"])
             frames.append(chl_df)

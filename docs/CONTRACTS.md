@@ -244,6 +244,11 @@ GET /variables
 ### (d) GET `/plugins`
 Lists all registered ingestion pipelines, tracking which source streams are operational or mocked.
 
+- **Status Values:**
+  - `"live"`: Operational pipeline fetching real, currently-fetchable data from live or archive providers.
+  - `"sample"`: Fully working pipeline running against illustrative/sample or offline reference data.
+  - `"stub"`: Ingestor interface defined but pipeline execution not yet implemented.
+
 - **Response:** `application/json` (List of ingestor plugin statuses)
 
 #### Example Request:
@@ -257,22 +262,22 @@ GET /plugins
   {
     "name": "Copernicus Marine GLORYS12V1 Ingestor",
     "type": "grid",
-    "status": "stub"
+    "status": "live"
   },
   {
-    "name": "argopy Ingestor",
+    "name": "argopy/erddapy Ifremer Argo Ingestor",
     "type": "point",
-    "status": "stub"
+    "status": "live"
   },
   {
     "name": "OMNI Moored Buoy Ingestor",
     "type": "point",
-    "status": "stub"
+    "status": "sample"
   },
   {
     "name": "Glider Sample Loader",
     "type": "point",
-    "status": "stub"
+    "status": "sample"
   }
 ]
 ```
