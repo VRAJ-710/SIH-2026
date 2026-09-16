@@ -12,8 +12,10 @@
   "dependencies": {
     "cesium": "^1.145.0",
     "lil-gui": "^0.21.0",
+    "plotly.js-dist-min": "^4.1.1",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
+    "react-plotly.js": "^4.1.0",
     "react-router-dom": "^7.18.3",
     "three": "^0.186.0",
     "vite-plugin-cesium": "^1.2.23"
@@ -25,6 +27,7 @@
     "@types/node": "^24.13.3",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.7",
+    "@types/react-plotly.js": "^2.6.4",
     "@types/three": "^0.186.0",
     "@vitejs/plugin-react": "^6.1.1",
     "autoprefixer": "^10.6.0",
