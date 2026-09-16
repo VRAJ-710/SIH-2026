@@ -104,6 +104,8 @@ Retrieves a filtered list of instrument coordinate markers within the bounding b
 
 - **Response:** `application/json` (List of instrument markers with metadata)
 
+> Note: Instruments with status `"sample"` (per Section 3(d)'s plugin registry — currently glider, buoy) are illustrative and NOT subject to `bbox`/`time_range` filtering, since their coordinates/timestamps don't necessarily align with the queried scenario. This ensures they consistently appear on the map for demonstration purposes.
+
 #### Example Request:
 ```http
 GET /instruments?bbox=8,82,23,92&time_range=2020-05-13T00:00:00Z,2020-05-25T23:59:59Z&instrument_type=argo
