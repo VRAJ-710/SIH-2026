@@ -281,3 +281,23 @@ GET /plugins
   }
 ]
 ```
+
+---
+
+### (e) GET `/health`
+Health check endpoint used by container orchestrators (e.g., Docker Compose, Kubernetes) to verify backend service readiness.
+
+- **Response:** `application/json`
+
+#### Example Request:
+```http
+GET /health
+```
+
+#### Example Response:
+```json
+{
+  "status": "ok",
+  "service": "incois-backend"
+}
+```

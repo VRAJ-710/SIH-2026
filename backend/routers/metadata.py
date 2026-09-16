@@ -26,6 +26,10 @@ router = APIRouter(tags=["metadata"])
 # ---------------------------------------------------------------------------
 VARIABLES_CATALOG: list[dict[str, Any]] = [
     {
+        # Note: The min_val/max_val here (20-32°C) are a default surface view range,
+        # not the full data range. Real GLORYS12 data spans ~1.06°C to 34.85°C across
+        # depth. Stage 7's colorbar editor must be careful not to silently clip
+        # deep-water or extreme values when a user changes depth.
         "name": "temperature",
         "display_name": "Sea Surface Temperature",
         "unit": "°C",
