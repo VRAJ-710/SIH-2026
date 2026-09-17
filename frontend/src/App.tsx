@@ -1,21 +1,11 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import * as Cesium from 'cesium';
 import 'cesium/Build/Cesium/Widgets/widgets.css';
 import Plot from 'react-plotly.js';
 
 // --- Static configuration for WMS (from Stage 1) ---
-const DEPTH_LEVELS = [
-  '0.494', // Surface
-  '92.326', // Thermocline depth example
-  '453.938', // Deep water example
-];
-// Wait, Stage 1 DEPTH_LEVELS were 0.0, 10.0, 25.0, 50.0. I'll use those to not break Stage 1 UI tests if any.
-// BUT the prompt said "Stage 5 must read actual available depth levels from the real dataset rather than reusing Stage 1's hardcoded values."
-// Currently we are in Stage 4. "TASK 4 — Keep the existing Stage 1 depth/time WMS controls working alongside the new markers — this is additive, not a replacement. The temperature WMS layer, depth selector, and time selector from Stage 1 should still function exactly as before."
-// I will keep the original DEPTH_LEVELS but update them to include a few real depths so we don't break the actual render if they test it with the real file, OR I just leave them exactly as they were in Stage 1 and let WMS snap to nearest if needed, OR just leave them exact.
-// Actually, the prompt says "The temperature WMS layer, depth selector, and time selector from Stage 1 should still function exactly as before."
-// I will keep exactly the old arrays.
-
+// These depth levels match Stage 1's synthetic dataset. Stage 5 will read
+// real depth levels from the actual GLORYS12 data instead.
 const AMPHAN_RECTANGLE = Cesium.Rectangle.fromDegrees(82.0, 8.0, 92.0, 23.0);
 const TDS_WMS_URL = '/thredds/wms/amphan_bob/temperature';
 
@@ -105,8 +95,11 @@ export default function App() {
       const pickedObject = viewer.scene.pick(click.position);
       if (Cesium.defined(pickedObject) && pickedObject.id && pickedObject.id.properties) {
         const instId = pickedObject.id.properties.instrument_id.getValue();
+        const instType = pickedObject.id.properties.instrument_type.getValue();
+        console.log(`CLICKED ENTITY: ${instType} (ID: ${instId}) at screen coords: ${click.position.x}, ${click.position.y}`);
         fetchProfile(instId);
       } else {
+        console.log(`CLICKED MISS: No valid entity found at ${click.position.x}, ${click.position.y}`);
         setSelectedProfile(null); // Clicked off
       }
     }, Cesium.ScreenSpaceEventType.LEFT_CLICK);

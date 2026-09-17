@@ -109,8 +109,8 @@ class DataStore:
                         & (df["lon"] >= min_lon)
                         & (df["lon"] <= max_lon)
                     )
-                    # Exempt gliders from bbox restriction
-                    mask = mask & (bbox_mask | (df["instrument_type"] == "glider"))
+                    # Exempt sample data from bbox restriction
+                    mask = mask & (bbox_mask | (df["instrument_type"].isin(["glider", "buoy"])))
             except Exception as exc:
                 logger.warning("Invalid bbox '%s': %s", bbox, exc)
 
@@ -121,8 +121,8 @@ class DataStore:
                 if len(t_parts) == 2:
                     start_time, end_time = t_parts
                     time_mask = (df["time"] >= start_time) & (df["time"] <= end_time)
-                    # Exempt gliders from time restriction
-                    mask = mask & (time_mask | (df["instrument_type"] == "glider"))
+                    # Exempt sample data from time restriction
+                    mask = mask & (time_mask | (df["instrument_type"].isin(["glider", "buoy"])))
             except Exception as exc:
                 logger.warning("Invalid time_range '%s': %s", time_range, exc)
         
