@@ -2,8 +2,8 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import './index.css'
-import App from './App.tsx'
-import VolumetricSpikePage from './dev/volumetric/VolumetricSpikePage.tsx'
+import App from './App'
+import VolumetricSpikePage from './dev/volumetric/VolumetricSpikePage'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

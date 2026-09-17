@@ -46,7 +46,7 @@
       </pathDefaults>
       <variables>
         <variable id="temperature">
-          <defaultColorScaleRange>25 33</defaultColorScaleRange>
+          <defaultColorScaleRange>24 32</defaultColorScaleRange>
         </variable>
       </variables>
     </datasetPath>

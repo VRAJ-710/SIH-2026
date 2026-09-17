@@ -25,4 +25,8 @@ services:
     container_name: sih_backend
     ports:
       - "8000:8000"
+    volumes:
+      - ./ingestion/output:/ingestion/output:ro
+    environment:
+      - DATA_DIR=/ingestion/output
     restart: unless-stopped
