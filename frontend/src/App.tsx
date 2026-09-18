@@ -1,7 +1,10 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, lazy, Suspense } from 'react';
 import * as Cesium from 'cesium';
 import 'cesium/Build/Cesium/Widgets/widgets.css';
 import Plot from 'react-plotly.js';
+
+// Stage 6b: Volumetric overlay (lazy-loaded to avoid loading Three.js until needed)
+const VolumetricOverlay = lazy(() => import('./components/VolumetricOverlay'));
 
 // --- Configuration for WMS (Stage 5 Real GLORYS12 Data) ---
 const AMPHAN_RECTANGLE = Cesium.Rectangle.fromDegrees(82.0, 8.0, 92.0, 23.0);
@@ -60,6 +63,9 @@ export default function App() {
   const [instruments, setInstruments] = useState<InstrumentMarker[]>([]);
   const [selectedProfile, setSelectedProfile] = useState<InstrumentProfile | null>(null);
   const [loadingProfile, setLoadingProfile] = useState(false);
+
+  // Stage 6b: Volumetric 3D overlay state
+  const [show3DOverlay, setShow3DOverlay] = useState(false);
 
   // Initialize Cesium Viewer
   useEffect(() => {
@@ -340,11 +346,12 @@ export default function App() {
     <div style={{ position: 'relative', width: '100vw', height: '100vh', overflow: 'hidden' }}>
       {/* Top Left WMS Panel (Stage 5 Real GLORYS12 Data) */}
       <div
+        id="wms-panel"
         style={{
           position: 'absolute',
           top: 10,
           left: 10,
-          zIndex: 9999,
+          zIndex: show3DOverlay ? 25000 : 9999,
           background: 'rgba(255, 255, 255, 0.96)',
           padding: '14px',
           border: '2px solid #222',
@@ -502,6 +509,37 @@ export default function App() {
                 <span>{legendMax}</span>
               </div>
             </div>
+
+            {/* Stage 6b: Drill into 3D Volumetric View */}
+            <div style={{ borderTop: '1px solid #eee', paddingTop: 10, marginTop: 6 }}>
+              <button
+                id="drill-3d-button"
+                type="button"
+                onClick={() => setShow3DOverlay(!show3DOverlay)}
+                disabled={!currentTime}
+                style={{
+                  width: '100%',
+                  padding: '8px 12px',
+                  fontWeight: 700,
+                  fontSize: '13px',
+                  cursor: currentTime ? 'pointer' : 'not-allowed',
+                  background: show3DOverlay
+                    ? 'linear-gradient(135deg, #e11d48, #be123c)'
+                    : 'linear-gradient(135deg, #0891b2, #0e7490)',
+                  color: '#fff',
+                  border: show3DOverlay ? '1px solid #be123c' : '1px solid #0e7490',
+                  borderRadius: '6px',
+                  boxShadow: '0 2px 6px rgba(0, 0, 0, 0.25)',
+                  letterSpacing: '0.03em',
+                  opacity: currentTime ? 1 : 0.5,
+                }}
+              >
+                {show3DOverlay ? '✕ Close 3D Volumetric View' : '🌊 Drill into 3D Volumetric View'}
+              </button>
+              <div style={{ fontSize: '10px', color: '#888', marginTop: 4, textAlign: 'center' as const }}>
+                {show3DOverlay ? 'Showing 3D ocean temperature volume' : 'Opens 3D temperature volume (84–90°E, 14–18°N, 0–200m)'}
+              </div>
+            </div>
           </>
         )}
       </div>
@@ -604,6 +642,16 @@ export default function App() {
       </div>
 
       <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
+
+      {/* Stage 6b: 3D Volumetric Overlay */}
+      {show3DOverlay && (
+        <Suspense fallback={null}>
+          <VolumetricOverlay
+            currentTime={currentTime}
+            onClose={() => setShow3DOverlay(false)}
+          />
+        </Suspense>
+      )}
     </div>
   );
 }
