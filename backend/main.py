@@ -12,7 +12,8 @@ from typing import AsyncIterator
 from fastapi import FastAPI
 
 from backend.data_store import store
-from backend.routers import instruments, metadata
+from backend.routers import instruments, metadata, volume
+from backend.volume_store import volume_store
 
 logging.basicConfig(
     level=logging.INFO,
@@ -31,6 +32,15 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         )
     else:
         logger.info("DataStore ready with in-situ point observations.")
+
+    if volume_store.is_available:
+        logger.info("VolumeStore ready with physical ocean NetCDF data.")
+    else:
+        logger.warning(
+            "VolumeStore unavailable: physical NetCDF not found at %s",
+            volume_store.nc_path,
+        )
+
     yield
     logger.info("Shutting down backend service.")
 
@@ -45,10 +55,12 @@ app = FastAPI(
 # Mount routes at root (matching CONTRACTS.md Section 3)
 app.include_router(instruments.router)
 app.include_router(metadata.router)
+app.include_router(volume.router)
 
 # Mount routes also under /api to seamlessly handle Vite proxy requests ('/api' -> backend)
 app.include_router(instruments.router, prefix="/api")
 app.include_router(metadata.router, prefix="/api")
+app.include_router(volume.router, prefix="/api")
 
 
 @app.get("/health", tags=["system"])
