@@ -24,3 +24,9 @@ tds/logs/
 # Ingestion intermediate / regenerable outputs
 ingestion/cache/
 ingestion/output/
+ 
+# Verification screenshots from agent sessions (not project deliverables) 
+stage*_*.png 
+ 
+# TypeScript build cache 
+*.tsbuildinfo 
