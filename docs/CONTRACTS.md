@@ -303,3 +303,63 @@ GET /health
   "service": "incois-backend"
 }
 ```
+
+---
+
+### (f) GET `/volume`
+Retrieves a uniformly-gridded 3D subset of physical ocean reanalysis data for volumetric 3D visualization.
+
+- **Query Parameters:**
+  - `bbox` (string, optional, format: `"min_lon,min_lat,max_lon,max_lat"`, default: `"84,14,90,18"`)
+  - `time` (string, optional, format: ISO8601 UTC timestamp `YYYY-MM-DDTHH:MM:SSZ`, default: `"2020-05-21T00:00:00Z"`)
+  - `variable` (string, optional, enum: `["temperature", "salinity"]`, default: `"temperature"`)
+  - `max_depth` (float, optional, positive depth in meters below ocean surface, default: `200.0`)
+  - `resolution` (string, optional, format: `"lon,lat,depth"`, default: `"32,32,16"`)
+
+- **Response:** `application/json`
+  - `bbox`: `[min_lon, min_lat, max_lon, max_lat]`
+  - `time`: Matched ISO8601 UTC timestamp
+  - `variable`: Queried variable name
+  - `depth_range`: `[actual_min_depth_used, actual_max_depth_used]` in meters
+  - `resolution`: `{"lon": 32, "lat": 32, "depth": 16}`
+  - `value_range`: `{"min": float, "max": float}` (computed exclusively over valid, non-sentinel ocean voxels)
+  - `land_sentinel`: `-9999` (constant indicator representing land, seabed bathymetry, or missing data)
+  - `values`: Flattened array of `lon * lat * depth` floats in row-major layout matching `data[z * width * height + y * width + x]`, where `x` is longitude index (`0..lon-1`), `y` is latitude index (`0..lat-1`), and `z` is depth index (`0..depth-1`). Land, seabed, and NaN cells are replaced with `land_sentinel`.
+
+#### Example Request:
+```http
+GET /volume?bbox=84,14,90,18&time=2020-05-21T00:00:00Z&variable=temperature&max_depth=200&resolution=32,32,16
+```
+
+#### Example Response:
+```json
+{
+  "bbox": [84.0, 14.0, 90.0, 18.0],
+  "time": "2020-05-21T00:00:00Z",
+  "variable": "temperature",
+  "depth_range": [0.494, 186.126],
+  "resolution": {
+    "lon": 32,
+    "lat": 32,
+    "depth": 16
+  },
+  "value_range": {
+    "min": 11.6852,
+    "max": 31.0156
+  },
+  "land_sentinel": -9999,
+  "values": [
+    30.2508,
+    30.2315,
+    30.2677,
+    30.1099,
+    29.9335,
+    29.6794,
+    29.4581,
+    29.1971,
+    28.9472,
+    28.8021
+  ]
+}
+```
+

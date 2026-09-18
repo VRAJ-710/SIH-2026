@@ -46,3 +46,28 @@ class PluginStatus(BaseModel):
     name: str
     type: Literal["grid", "point"]
     status: Literal["live", "sample", "stub"]
+
+
+class VolumeResolution(BaseModel):
+    """3D grid voxel counts per dimension."""
+    lon: int
+    lat: int
+    depth: int
+
+
+class VolumeValueRange(BaseModel):
+    """Minimum and maximum values across valid non-sentinel ocean voxels."""
+    min: float | None = None
+    max: float | None = None
+
+
+class VolumeResponse(BaseModel):
+    """Schema for GET /volume response per CONTRACTS.md Section 3(f)."""
+    bbox: list[float]
+    time: str
+    variable: str
+    depth_range: list[float]
+    resolution: VolumeResolution
+    value_range: VolumeValueRange
+    land_sentinel: float = -9999.0
+    values: list[float]
