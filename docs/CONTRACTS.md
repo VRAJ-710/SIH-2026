@@ -20,7 +20,7 @@ All in-situ point data processed by the ingestion engine must be unified into a 
 | `variable` | `string` | Enum exactly: `["temperature", "salinity", "chlorophyll", "current_u", "current_v"]` |
 | `value` | `float` | Measured parameter value in corresponding standard units |
 | `instrument_id` | `string` | Source's native identifier (e.g., Argo WMO number like `"2902086"`, buoy name like `"BD11"`) |
-| `instrument_type`| `string` | Enum exactly: `["argo", "glider", "buoy", "ctd"]` |
+| `instrument_type`| `string` | Enum exactly: `["argo", "glider", "buoy", "ctd", "adcp"]` |
 
 *Note:* No extra columns are permitted in this table. All measurements across all sensors are represented vertically (normalized/melted format).
 
