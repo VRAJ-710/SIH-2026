@@ -2,6 +2,10 @@ import { useEffect, useRef, useState, lazy, Suspense } from 'react';
 import * as Cesium from 'cesium';
 import 'cesium/Build/Cesium/Widgets/widgets.css';
 import Plot from 'react-plotly.js';
+import { TOUR_BEATS } from './lib/tourScript';
+import GuidedTourPanel from './components/GuidedTourPanel';
+
+export type UIMode = 'forecaster' | 'public';
 
 // Stage 6b: Volumetric overlay (lazy-loaded to avoid loading Three.js until needed)
 const VolumetricOverlay = lazy(() => import('./components/VolumetricOverlay'));
@@ -134,6 +138,14 @@ export default function App() {
   const [layerOpacity, setLayerOpacity] = useState<number>(1.0);
   const [verticalExaggeration, setVerticalExaggeration] = useState<number>(1.0);
   const [variableConfigs, setVariableConfigs] = useState<Record<GridVariable, VariableConfig>>(DEFAULT_VARIABLES);
+  
+  // Stage 9 State: Forecaster / Public mode & Guided Tour
+  const [uiMode, setUiMode] = useState<UIMode>('forecaster');
+  const [isTourActive, setIsTourActive] = useState<boolean>(false);
+  const [currentBeatIndex, setCurrentBeatIndex] = useState<number>(0);
+  const [tourPlaying, setTourPlaying] = useState<boolean>(false);
+  const [isCameraFlying, setIsCameraFlying] = useState<boolean>(false);
+  const [dwellRemainingSec, setDwellRemainingSec] = useState<number>(7);
 
   // Initialize Cesium Viewer (Stage 7b Visual Polish Pass)
   useEffect(() => {
@@ -364,6 +376,8 @@ export default function App() {
     
     ds.entities.removeAll();
 
+    const activeTourBeat = isTourActive ? TOUR_BEATS[currentBeatIndex] : null;
+
     instruments.forEach((inst) => {
       let color = Cesium.Color.WHITE;
       if (inst.instrument_type === 'argo') color = Cesium.Color.YELLOW;
@@ -371,13 +385,15 @@ export default function App() {
       if (inst.instrument_type === 'buoy') color = Cesium.Color.RED;
       if (inst.instrument_type === 'adcp') color = Cesium.Color.fromCssColorString('#c084fc');
 
+      const isTargetInstrument = activeTourBeat?.instrumentId === inst.instrument_id;
+
       ds.entities.add({
         position: Cesium.Cartesian3.fromDegrees(inst.lon, inst.lat),
         point: {
-          pixelSize: 12,
-          color: color,
-          outlineColor: Cesium.Color.BLACK,
-          outlineWidth: 2,
+          pixelSize: isTargetInstrument ? 22 : 12,
+          color: isTargetInstrument ? Cesium.Color.fromCssColorString('#4ade80') : color,
+          outlineColor: isTargetInstrument ? Cesium.Color.WHITE : Cesium.Color.BLACK,
+          outlineWidth: isTargetInstrument ? 3 : 2,
         },
         properties: {
           instrument_id: inst.instrument_id,
@@ -385,7 +401,7 @@ export default function App() {
         },
       });
     });
-  }, [instruments, viewerReady]);
+  }, [instruments, viewerReady, isTourActive, currentBeatIndex]);
 
   // Fetch /api/variables metadata on mount to initialize sensible defaults
   useEffect(() => {
@@ -551,12 +567,125 @@ export default function App() {
     }
   };
 
+  const activateTourBeat = (beatIdx: number) => {
+    if (beatIdx < 0 || beatIdx >= TOUR_BEATS.length) return;
+    const beat = TOUR_BEATS[beatIdx];
+    setCurrentBeatIndex(beatIdx);
+    setDwellRemainingSec(7);
+
+    // 1. Match time index
+    if (timeSteps.length > 0) {
+      const tIdx = timeSteps.findIndex((t) => t.includes(beat.targetDate));
+      if (tIdx >= 0) {
+        setTimeIndex(tIdx);
+      }
+    }
+
+    // 2. Match depth index
+    if (depthLevels.length > 0) {
+      const dIdx = depthLevels.findIndex((d) => Math.abs(d.depthMeters - beat.depthMeters) < 1.0);
+      if (dIdx >= 0) {
+        setDepthIndex(dIdx);
+      } else {
+        setDepthIndex(0);
+      }
+    }
+
+    // 3. Match variable
+    handleVariableChange(beat.variable);
+
+    // 4. Highlight / auto-open profile if beat specifies one (Beat 5 BGC-Argo #2902264)
+    if (beat.instrumentId) {
+      fetchProfile(beat.instrumentId);
+    } else {
+      setSelectedProfile(null);
+    }
+
+    // 5. Smooth camera flight
+    const viewer = viewerRef.current;
+    if (viewer && !viewer.isDestroyed()) {
+      setIsCameraFlying(true);
+      const target = Cesium.Cartesian3.fromDegrees(
+        beat.camera.destination.lon,
+        beat.camera.destination.lat,
+        beat.camera.destination.height,
+      );
+      viewer.camera.flyTo({
+        destination: target,
+        orientation: {
+          heading: Cesium.Math.toRadians(beat.camera.headingDeg),
+          pitch: Cesium.Math.toRadians(beat.camera.pitchDeg),
+          roll: Cesium.Math.toRadians(beat.camera.rollDeg),
+        },
+        duration: 2.5,
+        easingFunction: Cesium.EasingFunction.QUADRATIC_IN_OUT,
+        complete: () => {
+          setIsCameraFlying(false);
+        },
+        cancel: () => {
+          setIsCameraFlying(false);
+        },
+      });
+    }
+  };
+
+  const handleStartTour = () => {
+    setIsTourActive(true);
+    setTourPlaying(false);
+    activateTourBeat(0);
+  };
+
+  const handleExitTour = () => {
+    setIsTourActive(false);
+    setTourPlaying(false);
+  };
+
+  const handleTourCallToAction = (action: 'open_3d' | 'open_profile', instrumentId?: string) => {
+    if (action === 'open_3d') {
+      setShow3DOverlay(true);
+    } else if (action === 'open_profile' && instrumentId) {
+      fetchProfile(instrumentId);
+    }
+  };
+
+  // Auto-play timer: camera flight completion + minimum 7-second dwell
+  useEffect(() => {
+    if (!isTourActive || !tourPlaying) return;
+
+    const interval = setInterval(() => {
+      // Pause countdown while camera is flying
+      if (isCameraFlying) return;
+
+      setDwellRemainingSec((prev) => {
+        if (prev <= 1) {
+          setCurrentBeatIndex((currentIdx) => {
+            const nextIdx = (currentIdx + 1) % TOUR_BEATS.length;
+            activateTourBeat(nextIdx);
+            return nextIdx;
+          });
+          return 7;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [isTourActive, tourPlaying, isCameraFlying]);
+
   useEffect(() => {
     (window as any).fetchProfile = fetchProfile;
+    (window as any).startTour = handleStartTour;
+    (window as any).exitTour = handleExitTour;
+    (window as any).setTourBeat = activateTourBeat;
+    (window as any).setUiMode = setUiMode;
     return () => {
       delete (window as any).fetchProfile;
+      delete (window as any).startTour;
+      delete (window as any).exitTour;
+      delete (window as any).setTourBeat;
+      delete (window as any).setUiMode;
     };
-  }, []);
+  }, [timeSteps, depthLevels]);
 
   return (
     <div style={{ position: 'relative', width: '100vw', height: '100vh', overflow: 'hidden' }}>
@@ -597,6 +726,120 @@ export default function App() {
           </div>
         </div>
 
+        {/* Forecaster / Public Mode Toggle (Task 3) */}
+        <div style={{ display: 'flex', background: 'rgba(30, 41, 59, 0.7)', padding: '3px', borderRadius: '8px', border: '1px solid rgba(100, 116, 139, 0.3)', marginBottom: 12 }}>
+          <button
+            id="mode-forecaster-btn"
+            type="button"
+            onClick={() => setUiMode('forecaster')}
+            style={{
+              flex: 1,
+              padding: '6px 8px',
+              fontSize: '11px',
+              fontWeight: uiMode === 'forecaster' ? 700 : 500,
+              cursor: 'pointer',
+              borderRadius: '6px',
+              border: 'none',
+              background: uiMode === 'forecaster' ? 'linear-gradient(135deg, #0284c7, #0369a1)' : 'transparent',
+              color: uiMode === 'forecaster' ? '#fff' : '#94a3b8',
+              boxShadow: uiMode === 'forecaster' ? '0 2px 8px rgba(2, 132, 199, 0.35)' : 'none',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            🔬 Forecaster Mode
+          </button>
+          <button
+            id="mode-public-btn"
+            type="button"
+            onClick={() => setUiMode('public')}
+            style={{
+              flex: 1,
+              padding: '6px 8px',
+              fontSize: '11px',
+              fontWeight: uiMode === 'public' ? 700 : 500,
+              cursor: 'pointer',
+              borderRadius: '6px',
+              border: 'none',
+              background: uiMode === 'public' ? 'linear-gradient(135deg, #059669, #047857)' : 'transparent',
+              color: uiMode === 'public' ? '#fff' : '#94a3b8',
+              boxShadow: uiMode === 'public' ? '0 2px 8px rgba(5, 150, 105, 0.35)' : 'none',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            🌐 Public Tour Mode
+          </button>
+        </div>
+
+        {/* Guided Tour Launcher in Forecaster Mode */}
+        {uiMode === 'forecaster' && !isTourActive && (
+          <div style={{ marginBottom: 12 }}>
+            <button
+              id="launch-tour-btn-forecaster"
+              type="button"
+              onClick={handleStartTour}
+              style={{
+                width: '100%',
+                padding: '6px 10px',
+                fontSize: '11px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                background: 'rgba(30, 41, 59, 0.8)',
+                border: '1px solid rgba(56, 189, 248, 0.4)',
+                borderRadius: '6px',
+                color: '#38bdf8',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 6,
+                transition: 'all 0.15s ease',
+              }}
+            >
+              <span>▶ Launch Guided Tour (Story Beats)</span>
+            </button>
+          </div>
+        )}
+
+        {/* Prominent Guided Tour Banner in Public Mode */}
+        {uiMode === 'public' && !isTourActive && (
+          <div
+            id="public-tour-banner"
+            style={{
+              marginBottom: 12,
+              padding: '12px',
+              background: 'linear-gradient(135deg, rgba(14, 165, 233, 0.15), rgba(5, 150, 105, 0.2))',
+              border: '1px solid rgba(56, 189, 248, 0.4)',
+              borderRadius: '10px',
+              boxShadow: '0 4px 14px rgba(0, 0, 0, 0.3)',
+            }}
+          >
+            <div style={{ fontWeight: 700, fontSize: '12px', color: '#f8fafc', marginBottom: 3 }}>
+              🎓 Public Outreach Story Tour
+            </div>
+            <div style={{ fontSize: '11px', color: '#cbd5e1', lineHeight: 1.4, marginBottom: 8 }}>
+              Explore Super Cyclone Amphan across 5 story beats: pre-storm warm pool, Category 5 peak, Sundarbans landfall, cold wake upwelling, and biological aftermath.
+            </div>
+            <button
+              id="launch-tour-btn-public"
+              type="button"
+              onClick={handleStartTour}
+              style={{
+                width: '100%',
+                padding: '8px 12px',
+                fontWeight: 700,
+                fontSize: '12px',
+                cursor: 'pointer',
+                background: 'linear-gradient(135deg, #0284c7, #0369a1)',
+                color: '#ffffff',
+                border: '1px solid #38bdf8',
+                borderRadius: '6px',
+                boxShadow: '0 2px 10px rgba(56, 189, 248, 0.3)',
+              }}
+            >
+              🌟 Start Guided Story Tour
+            </button>
+          </div>
+        )}
+
         {loadingCapabilities ? (
           <div style={{ padding: '12px 0', color: '#38bdf8', fontSize: '12px' }}>
             ⏳ Loading available depth levels & time steps from TDS...
@@ -606,7 +849,9 @@ export default function App() {
             {/* Task 1: Ocean Variable Selector */}
             <div style={{ marginBottom: 12, borderBottom: '1px solid rgba(100, 116, 139, 0.2)', paddingBottom: 10 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                <strong style={{ color: '#cbd5e1', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Variable (WMS Layer):</strong>
+                <strong style={{ color: '#cbd5e1', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+                  {uiMode === 'public' ? 'Ocean Parameter:' : 'Variable (WMS Layer):'}
+                </strong>
                 <span id="active-variable-label" style={{ fontWeight: 700, color: '#38bdf8', fontSize: '11px' }}>
                   {currentVarConfig.display_name}
                 </span>
@@ -636,10 +881,10 @@ export default function App() {
                         transition: 'all 0.15s ease',
                       }}
                     >
-                      {v === 'temperature' && '🌡️ Temperature'}
-                      {v === 'salinity' && '🧂 Salinity'}
-                      {v === 'current_u' && '➡️ Current U (East)'}
-                      {v === 'current_v' && '⬆️ Current V (North)'}
+                      {v === 'temperature' && (uiMode === 'public' ? '🌡️ Sea Surface Temp' : '🌡️ Temperature')}
+                      {v === 'salinity' && (uiMode === 'public' ? '🧂 Ocean Salinity' : '🧂 Salinity')}
+                      {v === 'current_u' && (uiMode === 'public' ? '➡️ East-West Currents' : '➡️ Current U (East)')}
+                      {v === 'current_v' && (uiMode === 'public' ? '⬆️ North-South Currents' : '⬆️ Current V (North)')}
                     </button>
                   );
                 })}
@@ -815,131 +1060,135 @@ export default function App() {
             {/* Task 2: Colorbar Editor & Scale Controls */}
             <div style={{ marginBottom: 12, borderBottom: '1px solid rgba(100, 116, 139, 0.2)', paddingBottom: 10 }}>
               <div style={{ fontWeight: 700, fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.03em', marginBottom: 8, color: '#cbd5e1' }}>
-                Colorbar & Scale Controls
+                {uiMode === 'forecaster' ? 'Colorbar & Scale Controls' : 'Colorbar Scale'}
               </div>
 
-              {/* Palette selector */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                <label htmlFor="palette-select" style={{ fontSize: '11px', color: '#94a3b8' }}>Palette:</label>
-                <select
-                  id="palette-select"
-                  value={palette}
-                  onChange={(e) => setPalette(e.target.value)}
-                  style={{
-                    fontSize: '11px',
-                    padding: '4px 8px',
-                    borderRadius: '6px',
-                    border: '1px solid rgba(100, 116, 139, 0.4)',
-                    background: '#1e293b',
-                    color: '#f8fafc',
-                    width: '230px',
-                    cursor: 'pointer',
-                  }}
-                >
-                  {AVAILABLE_PALETTES.map((p) => (
-                    <option key={p.id} value={p.id}>{p.label}</option>
-                  ))}
-                </select>
-              </div>
+              {uiMode === 'forecaster' && (
+                <div id="forecaster-colorbar-controls">
+                  {/* Palette selector */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                    <label htmlFor="palette-select" style={{ fontSize: '11px', color: '#94a3b8' }}>Palette:</label>
+                    <select
+                      id="palette-select"
+                      value={palette}
+                      onChange={(e) => setPalette(e.target.value)}
+                      style={{
+                        fontSize: '11px',
+                        padding: '4px 8px',
+                        borderRadius: '6px',
+                        border: '1px solid rgba(100, 116, 139, 0.4)',
+                        background: '#1e293b',
+                        color: '#f8fafc',
+                        width: '230px',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {AVAILABLE_PALETTES.map((p) => (
+                        <option key={p.id} value={p.id}>{p.label}</option>
+                      ))}
+                    </select>
+                  </div>
 
-              {/* Min/Max Overrides */}
-              <div style={{ display: 'flex', alignItems: 'flex-end', gap: '6px', marginBottom: 8 }}>
-                <div style={{ flex: 1 }}>
-                  <label htmlFor="range-min-input" style={{ fontSize: '10px', color: '#94a3b8', display: 'block', marginBottom: 2 }}>
-                    Min ({unit}):
-                  </label>
-                  <input
-                    id="range-min-input"
-                    type="number"
-                    step={activeVariable.startsWith('current') ? '0.1' : '0.5'}
-                    value={customMin !== null ? customMin : effectiveMin}
-                    onChange={(e) => {
-                      const val = parseFloat(e.target.value);
-                      setCustomMin(isNaN(val) ? null : val);
-                    }}
-                    style={{
-                      width: '100%',
-                      fontSize: '11px',
-                      padding: '4px 6px',
-                      background: '#1e293b',
-                      color: '#f8fafc',
-                      border: '1px solid rgba(100, 116, 139, 0.4)',
-                      borderRadius: '6px',
-                      fontFamily: 'monospace',
-                    }}
-                  />
-                </div>
-                <div style={{ flex: 1 }}>
-                  <label htmlFor="range-max-input" style={{ fontSize: '10px', color: '#94a3b8', display: 'block', marginBottom: 2 }}>
-                    Max ({unit}):
-                  </label>
-                  <input
-                    id="range-max-input"
-                    type="number"
-                    step={activeVariable.startsWith('current') ? '0.1' : '0.5'}
-                    value={customMax !== null ? customMax : effectiveMax}
-                    onChange={(e) => {
-                      const val = parseFloat(e.target.value);
-                      setCustomMax(isNaN(val) ? null : val);
-                    }}
-                    style={{
-                      width: '100%',
-                      fontSize: '11px',
-                      padding: '4px 6px',
-                      background: '#1e293b',
-                      color: '#f8fafc',
-                      border: '1px solid rgba(100, 116, 139, 0.4)',
-                      borderRadius: '6px',
-                      fontFamily: 'monospace',
-                    }}
-                  />
-                </div>
-                <div>
-                  <button
-                    id="reset-range-btn"
-                    type="button"
-                    onClick={() => {
-                      setCustomMin(null);
-                      setCustomMax(null);
-                    }}
-                    disabled={customMin === null && customMax === null}
-                    style={{
-                      fontSize: '11px',
-                      padding: '4px 8px',
-                      height: '26px',
-                      cursor: (customMin === null && customMax === null) ? 'default' : 'pointer',
-                      background: 'rgba(51, 65, 85, 0.65)',
-                      border: '1px solid rgba(100, 116, 139, 0.4)',
-                      borderRadius: '6px',
-                      color: '#e2e8f0',
-                      opacity: (customMin === null && customMax === null) ? 0.35 : 1,
-                    }}
-                    title="Reset to variable default range"
-                  >
-                    Reset
-                  </button>
-                </div>
-              </div>
+                  {/* Min/Max Overrides */}
+                  <div style={{ display: 'flex', alignItems: 'flex-end', gap: '6px', marginBottom: 8 }}>
+                    <div style={{ flex: 1 }}>
+                      <label htmlFor="range-min-input" style={{ fontSize: '10px', color: '#94a3b8', display: 'block', marginBottom: 2 }}>
+                        Min ({unit}):
+                      </label>
+                      <input
+                        id="range-min-input"
+                        type="number"
+                        step={activeVariable.startsWith('current') ? '0.1' : '0.5'}
+                        value={customMin !== null ? customMin : effectiveMin}
+                        onChange={(e) => {
+                          const val = parseFloat(e.target.value);
+                          setCustomMin(isNaN(val) ? null : val);
+                        }}
+                        style={{
+                          width: '100%',
+                          fontSize: '11px',
+                          padding: '4px 6px',
+                          background: '#1e293b',
+                          color: '#f8fafc',
+                          border: '1px solid rgba(100, 116, 139, 0.4)',
+                          borderRadius: '6px',
+                          fontFamily: 'monospace',
+                        }}
+                      />
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <label htmlFor="range-max-input" style={{ fontSize: '10px', color: '#94a3b8', display: 'block', marginBottom: 2 }}>
+                        Max ({unit}):
+                      </label>
+                      <input
+                        id="range-max-input"
+                        type="number"
+                        step={activeVariable.startsWith('current') ? '0.1' : '0.5'}
+                        value={customMax !== null ? customMax : effectiveMax}
+                        onChange={(e) => {
+                          const val = parseFloat(e.target.value);
+                          setCustomMax(isNaN(val) ? null : val);
+                        }}
+                        style={{
+                          width: '100%',
+                          fontSize: '11px',
+                          padding: '4px 6px',
+                          background: '#1e293b',
+                          color: '#f8fafc',
+                          border: '1px solid rgba(100, 116, 139, 0.4)',
+                          borderRadius: '6px',
+                          fontFamily: 'monospace',
+                        }}
+                      />
+                    </div>
+                    <div>
+                      <button
+                        id="reset-range-btn"
+                        type="button"
+                        onClick={() => {
+                          setCustomMin(null);
+                          setCustomMax(null);
+                        }}
+                        disabled={customMin === null && customMax === null}
+                        style={{
+                          fontSize: '11px',
+                          padding: '4px 8px',
+                          height: '26px',
+                          cursor: (customMin === null && customMax === null) ? 'default' : 'pointer',
+                          background: 'rgba(51, 65, 85, 0.65)',
+                          border: '1px solid rgba(100, 116, 139, 0.4)',
+                          borderRadius: '6px',
+                          color: '#e2e8f0',
+                          opacity: (customMin === null && customMax === null) ? 0.35 : 1,
+                        }}
+                        title="Reset to variable default range"
+                      >
+                        Reset
+                      </button>
+                    </div>
+                  </div>
 
-              {/* Log scale toggle */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                <label style={{ fontSize: '11px', display: 'flex', alignItems: 'center', gap: '6px', color: '#cbd5e1', cursor: canLogScale ? 'pointer' : 'not-allowed' }}>
-                  <input
-                    id="logscale-toggle"
-                    type="checkbox"
-                    checked={activeLogScale}
-                    disabled={!canLogScale}
-                    onChange={(e) => setIsLogScale(e.target.checked)}
-                    style={{ accentColor: '#38bdf8' }}
-                  />
-                  <span>Logarithmic Scale</span>
-                </label>
-                {!canLogScale && (
-                  <span id="logscale-note" style={{ fontSize: '10px', color: '#f87171' }}>
-                    Requires min &gt; 0
-                  </span>
-                )}
-              </div>
+                  {/* Log scale toggle */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                    <label style={{ fontSize: '11px', display: 'flex', alignItems: 'center', gap: '6px', color: '#cbd5e1', cursor: canLogScale ? 'pointer' : 'not-allowed' }}>
+                      <input
+                        id="logscale-toggle"
+                        type="checkbox"
+                        checked={activeLogScale}
+                        disabled={!canLogScale}
+                        onChange={(e) => setIsLogScale(e.target.checked)}
+                        style={{ accentColor: '#38bdf8' }}
+                      />
+                      <span>Logarithmic Scale</span>
+                    </label>
+                    {!canLogScale && (
+                      <span id="logscale-note" style={{ fontSize: '10px', color: '#f87171' }}>
+                        Requires min &gt; 0
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {/* Dynamic WMS Legend Graphic */}
               <div style={{ marginTop: 6, background: 'rgba(15, 23, 42, 0.7)', padding: '8px 10px', borderRadius: '8px', border: '1px solid rgba(56, 189, 248, 0.2)' }}>
@@ -1269,6 +1518,30 @@ export default function App() {
           </div>
         </div>
       </div>
+
+      {/* Stage 9: Guided Tour Panel */}
+      {isTourActive && (
+        <GuidedTourPanel
+          currentBeat={TOUR_BEATS[currentBeatIndex]}
+          beatIndex={currentBeatIndex}
+          totalBeats={TOUR_BEATS.length}
+          isPlaying={tourPlaying}
+          isFlying={isCameraFlying}
+          dwellRemainingSec={dwellRemainingSec}
+          onTogglePlay={() => setTourPlaying(!tourPlaying)}
+          onNext={() => {
+            const next = Math.min(TOUR_BEATS.length - 1, currentBeatIndex + 1);
+            activateTourBeat(next);
+          }}
+          onPrev={() => {
+            const prev = Math.max(0, currentBeatIndex - 1);
+            activateTourBeat(prev);
+          }}
+          onSelectBeat={(idx) => activateTourBeat(idx)}
+          onExit={handleExitTour}
+          onCallToAction={handleTourCallToAction}
+        />
+      )}
 
       <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
 
