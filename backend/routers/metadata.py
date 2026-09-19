@@ -99,6 +99,11 @@ PLUGINS_REGISTRY: list[dict[str, Any]] = [
         "type": "point",
         "status": "sample",
     },
+    {
+        "name": "ADCP Ingestor",
+        "type": "point",
+        "status": "stub",
+    },
 ]
 
 

@@ -16,6 +16,7 @@ PARQUET_FILES = [
     "points_argo.parquet",
     "points_buoy.parquet",
     "points_glider.parquet",
+    "points_adcp.parquet",
 ]
 
 
@@ -30,8 +31,11 @@ class DataStore:
     def load_data(self) -> None:
         """Load and concatenate all available parquet point files."""
         frames = []
-        for filename in PARQUET_FILES:
-            file_path = self.data_dir / filename
+        # Discover all points_*.parquet files generically, or fall back to PARQUET_FILES
+        discovered = sorted(self.data_dir.glob("points_*.parquet"))
+        file_paths = discovered if discovered else [self.data_dir / f for f in PARQUET_FILES]
+
+        for file_path in file_paths:
             if file_path.exists():
                 try:
                     df = pd.read_parquet(file_path)
