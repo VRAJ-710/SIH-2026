@@ -49,6 +49,9 @@ const REGION_BBOXES: Record<RegionPreset, { bbox: string; label: string }> = {
   coastline: { bbox: '86,20,91,23', label: '86–91°E, 20–23°N (Coastline Mask)' },
 };
 
+// Stage 7a Task 5: Gate land-mask test preset behind dev flag so it is not user-facing
+const SHOW_DEV_REGIONS = typeof window !== 'undefined' && window.location.search.includes('dev_mask=true');
+
 interface VolumetricOverlayProps {
   /** ISO8601 timestamp from the main app's time scrubber. */
   currentTime: string;
@@ -400,45 +403,47 @@ export default function VolumetricOverlay({ currentTime, onClose }: VolumetricOv
           </span>
         </div>
 
-        {/* Region preset selector */}
-        <div style={{ display: 'flex', gap: 6, margin: '8px 0 6px' }}>
-          <button
-            id="region-select-coldwake"
-            type="button"
-            onClick={() => setRegion('coldwake')}
-            style={{
-              flex: 1,
-              padding: '4px 6px',
-              fontSize: '11px',
-              fontWeight: region === 'coldwake' ? 700 : 400,
-              borderRadius: 6,
-              border: region === 'coldwake' ? '1px solid #38bdf8' : '1px solid #334155',
-              background: region === 'coldwake' ? '#0369a1' : '#1e293b',
-              color: '#fff',
-              cursor: 'pointer',
-            }}
-          >
-            Cold-Wake Box
-          </button>
-          <button
-            id="region-select-coastline"
-            type="button"
-            onClick={() => setRegion('coastline')}
-            style={{
-              flex: 1,
-              padding: '4px 6px',
-              fontSize: '11px',
-              fontWeight: region === 'coastline' ? 700 : 400,
-              borderRadius: 6,
-              border: region === 'coastline' ? '1px solid #38bdf8' : '1px solid #334155',
-              background: region === 'coastline' ? '#0369a1' : '#1e293b',
-              color: '#fff',
-              cursor: 'pointer',
-            }}
-          >
-            Coastline (Land Mask Test)
-          </button>
-        </div>
+        {/* Region preset selector (Gated behind SHOW_DEV_REGIONS for Task 5) */}
+        {SHOW_DEV_REGIONS && (
+          <div style={{ display: 'flex', gap: 6, margin: '8px 0 6px' }}>
+            <button
+              id="region-select-coldwake"
+              type="button"
+              onClick={() => setRegion('coldwake')}
+              style={{
+                flex: 1,
+                padding: '4px 6px',
+                fontSize: '11px',
+                fontWeight: region === 'coldwake' ? 700 : 400,
+                borderRadius: 6,
+                border: region === 'coldwake' ? '1px solid #38bdf8' : '1px solid #334155',
+                background: region === 'coldwake' ? '#0369a1' : '#1e293b',
+                color: '#fff',
+                cursor: 'pointer',
+              }}
+            >
+              Cold-Wake Box
+            </button>
+            <button
+              id="region-select-coastline"
+              type="button"
+              onClick={() => setRegion('coastline')}
+              style={{
+                flex: 1,
+                padding: '4px 6px',
+                fontSize: '11px',
+                fontWeight: region === 'coastline' ? 700 : 400,
+                borderRadius: 6,
+                border: region === 'coastline' ? '1px solid #38bdf8' : '1px solid #334155',
+                background: region === 'coastline' ? '#0369a1' : '#1e293b',
+                color: '#fff',
+                cursor: 'pointer',
+              }}
+            >
+              Coastline (Land Mask Test)
+            </button>
+          </div>
+        )}
 
         <div style={{ fontSize: 11, color: '#94a3b8', lineHeight: 1.5 }}>
           <div><strong>Box:</strong> <span id="overlay-region-label">{REGION_BBOXES[region].label}</span></div>

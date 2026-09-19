@@ -42,6 +42,62 @@ interface DepthLevel {
   depthMeters: number;
 }
 
+export type GridVariable = 'temperature' | 'salinity' | 'current_u' | 'current_v';
+
+export interface VariableConfig {
+  name: GridVariable;
+  display_name: string;
+  unit: string;
+  min_val: number;
+  max_val: number;
+  default_palette: string;
+}
+
+const DEFAULT_VARIABLES: Record<GridVariable, VariableConfig> = {
+  temperature: {
+    name: 'temperature',
+    display_name: 'Sea Surface Temperature',
+    unit: '°C',
+    min_val: 20.0,
+    max_val: 32.0,
+    default_palette: 'x-Rainbow',
+  },
+  salinity: {
+    name: 'salinity',
+    display_name: 'Sea Surface Salinity',
+    unit: 'psu',
+    min_val: 28.0,
+    max_val: 36.0,
+    default_palette: 'psu-viridis',
+  },
+  current_u: {
+    name: 'current_u',
+    display_name: 'Eastward Current Velocity',
+    unit: 'm/s',
+    min_val: -1.5,
+    max_val: 1.5,
+    default_palette: 'psu-viridis',
+  },
+  current_v: {
+    name: 'current_v',
+    display_name: 'Northward Current Velocity',
+    unit: 'm/s',
+    min_val: -1.5,
+    max_val: 1.5,
+    default_palette: 'psu-viridis',
+  },
+};
+
+const AVAILABLE_PALETTES = [
+  { id: 'default', label: 'Default' },
+  { id: 'x-Rainbow', label: 'Rainbow (x-Rainbow)' },
+  { id: 'psu-viridis', label: 'Viridis (psu-viridis)' },
+  { id: 'psu-magma', label: 'Magma (psu-magma)' },
+  { id: 'div-RdBu', label: 'RdBu Diverging' },
+  { id: 'seq-Blues', label: 'Blues Sequential' },
+  { id: 'seq-Heat', label: 'Heat Sequential' },
+];
+
 export default function App() {
   const containerRef = useRef<HTMLDivElement>(null);
   const viewerRef = useRef<Cesium.Viewer | null>(null);
@@ -66,6 +122,16 @@ export default function App() {
 
   // Stage 6b: Volumetric 3D overlay state
   const [show3DOverlay, setShow3DOverlay] = useState(false);
+
+  // Stage 7a State: Variable, Palette, Range overrides, Log scale, Opacity, Vertical exaggeration
+  const [activeVariable, setActiveVariable] = useState<GridVariable>('temperature');
+  const [palette, setPalette] = useState<string>('x-Rainbow');
+  const [customMin, setCustomMin] = useState<number | null>(null);
+  const [customMax, setCustomMax] = useState<number | null>(null);
+  const [isLogScale, setIsLogScale] = useState<boolean>(false);
+  const [layerOpacity, setLayerOpacity] = useState<number>(1.0);
+  const [verticalExaggeration, setVerticalExaggeration] = useState<number>(1.0);
+  const [variableConfigs, setVariableConfigs] = useState<Record<GridVariable, VariableConfig>>(DEFAULT_VARIABLES);
 
   // Initialize Cesium Viewer
   useEffect(() => {
@@ -254,32 +320,90 @@ export default function App() {
     });
   }, [instruments, viewerReady]);
 
+  // Fetch /api/variables metadata on mount to initialize sensible defaults
+  useEffect(() => {
+    fetch('/api/variables')
+      .then((res) => res.json())
+      .then((data: { variables: any[] }) => {
+        if (data && Array.isArray(data.variables)) {
+          const updated = { ...DEFAULT_VARIABLES };
+          for (const v of data.variables) {
+            if (v.name in updated) {
+              const k = v.name as GridVariable;
+              updated[k] = {
+                ...updated[k],
+                display_name: v.display_name || updated[k].display_name,
+                unit: v.unit || updated[k].unit,
+                min_val: typeof v.min_val === 'number' ? v.min_val : updated[k].min_val,
+                max_val: typeof v.max_val === 'number' ? v.max_val : updated[k].max_val,
+              };
+            }
+          }
+          setVariableConfigs(updated);
+        }
+      })
+      .catch((err) => console.warn('Failed to fetch /api/variables, using defaults:', err));
+  }, []);
+
+  // Sync layer opacity to Cesium active imagery layer
+  useEffect(() => {
+    if (layerRef.current) {
+      layerRef.current.alpha = layerOpacity;
+    }
+  }, [layerOpacity]);
+
+  // Sync vertical exaggeration to Cesium scene and globe
+  useEffect(() => {
+    if (viewerRef.current && !viewerRef.current.isDestroyed()) {
+      const viewer = viewerRef.current;
+      viewer.scene.verticalExaggeration = verticalExaggeration;
+      if ('verticalExaggeration' in (viewer.scene.globe as any)) {
+        (viewer.scene.globe as any).verticalExaggeration = verticalExaggeration;
+      }
+    }
+  }, [verticalExaggeration]);
+
+  // Task 1: When switching active variable, ALWAYS reset customMin/customMax to null
+  const handleVariableChange = (newVar: GridVariable) => {
+    setActiveVariable(newVar);
+    setCustomMin(null);
+    setCustomMax(null);
+    const cfg = variableConfigs[newVar] || DEFAULT_VARIABLES[newVar];
+    setPalette(cfg.default_palette || 'psu-viridis');
+    if (cfg.min_val <= 0) {
+      setIsLogScale(false);
+    }
+  };
+
   // Calculate current depth & dynamic color scale range
   const currentDepth = depthLevels[depthIndex];
   const currentTime = timeSteps[timeIndex];
 
-  let colorScaleRange = '24,32';
-  let legendMin = '24°C';
-  let legendMid = '28°C';
-  let legendMax = '32°C';
-  if (currentDepth) {
+  // Active variable configuration
+  const currentVarConfig = variableConfigs[activeVariable] || DEFAULT_VARIABLES[activeVariable];
+  const unit = currentVarConfig.unit;
+
+  // Calculate default min/max
+  let defaultMin = currentVarConfig.min_val;
+  let defaultMax = currentVarConfig.max_val;
+
+  if (activeVariable === 'temperature' && currentDepth) {
     if (currentDepth.depthMeters >= 200) {
-      colorScaleRange = '1,15';
-      legendMin = '1°C';
-      legendMid = '8°C';
-      legendMax = '15°C';
+      defaultMin = 1.0;
+      defaultMax = 15.0;
     } else if (currentDepth.depthMeters >= 50) {
-      colorScaleRange = '15,28';
-      legendMin = '15°C';
-      legendMid = '21.5°C';
-      legendMax = '28°C';
+      defaultMin = 15.0;
+      defaultMax = 28.0;
     } else {
-      colorScaleRange = '24,32';
-      legendMin = '24°C';
-      legendMid = '28°C';
-      legendMax = '32°C';
+      defaultMin = 24.0;
+      defaultMax = 32.0;
     }
   }
+
+  const effectiveMin = customMin !== null ? customMin : defaultMin;
+  const effectiveMax = customMax !== null ? customMax : defaultMax;
+  const canLogScale = effectiveMin > 0;
+  const activeLogScale = isLogScale && canLogScale;
 
   // Handle WMS layer
   useEffect(() => {
@@ -294,27 +418,33 @@ export default function App() {
 
     if (!currentDepth || !currentTime) return;
 
+    const wmsUrl = `/thredds/wms/amphan_bob_real/${activeVariable}`;
+    const stylesParam = palette === 'default' ? '' : `default-scalar/${palette}`;
+
     const provider = new Cesium.WebMapServiceImageryProvider({
-      url: TDS_WMS_URL,
-      layers: 'temperature',
+      url: wmsUrl,
+      layers: activeVariable,
       crs: 'CRS:84',
       enablePickFeatures: false,
       parameters: {
         service: 'WMS',
         version: '1.3.0',
         request: 'GetMap',
-        styles: '',
+        styles: stylesParam,
         format: 'image/png',
         transparent: true,
         TIME: currentTime,
         ELEVATION: currentDepth.valueStr,
-        COLORSCALERANGE: colorScaleRange,
+        COLORSCALERANGE: `${effectiveMin},${effectiveMax}`,
+        ...(activeLogScale ? { LOGSCALE: 'true' } : { LOGSCALE: 'false' }),
       },
       rectangle: AMPHAN_RECTANGLE,
       tilingScheme: new Cesium.GeographicTilingScheme(),
     });
 
-    layerRef.current = viewer.imageryLayers.addImageryProvider(provider);
+    const newLayer = viewer.imageryLayers.addImageryProvider(provider);
+    newLayer.alpha = layerOpacity;
+    layerRef.current = newLayer;
 
     // Sync Cesium Clock with timeline
     try {
@@ -322,7 +452,19 @@ export default function App() {
     } catch {
       // fallback
     }
-  }, [currentDepth, currentTime, colorScaleRange, viewerReady, depthLevels.length, timeSteps.length]);
+  }, [
+    activeVariable,
+    palette,
+    effectiveMin,
+    effectiveMax,
+    activeLogScale,
+    currentDepth,
+    currentTime,
+    viewerReady,
+    layerOpacity,
+    depthLevels.length,
+    timeSteps.length,
+  ]);
 
   const fetchProfile = async (instrumentId: string) => {
     setLoadingProfile(true);
@@ -344,7 +486,7 @@ export default function App() {
 
   return (
     <div style={{ position: 'relative', width: '100vw', height: '100vh', overflow: 'hidden' }}>
-      {/* Top Left WMS Panel (Stage 5 Real GLORYS12 Data) */}
+      {/* Top Left WMS Panel (Stage 7a Functional Controls) */}
       <div
         id="wms-panel"
         style={{
@@ -357,14 +499,16 @@ export default function App() {
           border: '2px solid #222',
           borderRadius: '4px',
           color: '#000',
-          width: '380px',
+          width: '390px',
+          maxHeight: 'calc(100vh - 40px)',
+          overflowY: 'auto',
           boxShadow: '0 4px 10px rgba(0, 0, 0, 0.25)',
           fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
           fontSize: '13px',
         }}
       >
         <div style={{ fontWeight: 700, fontSize: '15px', marginBottom: 10, borderBottom: '1px solid #ddd', paddingBottom: 6 }}>
-          Cyclone Amphan: GLORYS12 Real Ocean Data
+          Cyclone Amphan: GLORYS12 Ocean Data
         </div>
 
         {loadingCapabilities ? (
@@ -373,7 +517,46 @@ export default function App() {
           </div>
         ) : (
           <>
-            {/* Task 2: Depth Control Slider */}
+            {/* Task 1: Ocean Variable Selector */}
+            <div style={{ marginBottom: 12, borderBottom: '1px solid #eee', paddingBottom: 10 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                <strong>Variable (WMS Layer):</strong>
+                <span id="active-variable-label" style={{ fontWeight: 600, color: '#0055aa' }}>
+                  {currentVarConfig.display_name}
+                </span>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '4px' }}>
+                {(['temperature', 'salinity', 'current_u', 'current_v'] as GridVariable[]).map((v) => {
+                  const isSelected = activeVariable === v;
+                  return (
+                    <button
+                      key={v}
+                      id={`var-btn-${v}`}
+                      type="button"
+                      onClick={() => handleVariableChange(v)}
+                      style={{
+                        padding: '5px 6px',
+                        fontSize: '11px',
+                        fontWeight: isSelected ? 700 : 400,
+                        cursor: 'pointer',
+                        background: isSelected ? '#0055aa' : '#f0f0f0',
+                        color: isSelected ? '#fff' : '#222',
+                        border: isSelected ? '1px solid #003388' : '1px solid #ccc',
+                        borderRadius: '3px',
+                        textAlign: 'center',
+                      }}
+                    >
+                      {v === 'temperature' && '🌡️ Temperature'}
+                      {v === 'salinity' && '🧂 Salinity'}
+                      {v === 'current_u' && '➡️ Current U (East)'}
+                      {v === 'current_v' && '⬆️ Current V (North)'}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Depth Control Slider */}
             <div style={{ marginBottom: 14 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
                 <strong>Depth (ELEVATION):</strong>
@@ -426,7 +609,7 @@ export default function App() {
               </div>
             </div>
 
-            {/* Task 3: Time Control Scrubber & Animation */}
+            {/* Time Control Scrubber & Animation */}
             <div style={{ marginBottom: 14 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
                 <strong>Time (TIME):</strong>
@@ -486,27 +669,190 @@ export default function App() {
               </div>
             </div>
 
-            {/* Task 4: Temperature Color Scale Reference */}
-            <div style={{ borderTop: '1px solid #eee', paddingTop: 8 }}>
+            {/* Task 2: Colorbar Editor & Scale Controls */}
+            <div style={{ borderTop: '1px solid #eee', paddingTop: 10, marginBottom: 12 }}>
+              <div style={{ fontWeight: 700, fontSize: '13px', marginBottom: 6, color: '#222' }}>
+                Colorbar & Scale Controls
+              </div>
+
+              {/* Palette selector */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                <label htmlFor="palette-select" style={{ fontSize: '11px', fontWeight: 600 }}>Palette:</label>
+                <select
+                  id="palette-select"
+                  value={palette}
+                  onChange={(e) => setPalette(e.target.value)}
+                  style={{ fontSize: '11px', padding: '3px 6px', borderRadius: '3px', border: '1px solid #ccc', width: '220px' }}
+                >
+                  {AVAILABLE_PALETTES.map((p) => (
+                    <option key={p.id} value={p.id}>{p.label}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Min/Max Overrides */}
+              <div style={{ display: 'flex', alignItems: 'flex-end', gap: '6px', marginBottom: 6 }}>
+                <div style={{ flex: 1 }}>
+                  <label htmlFor="range-min-input" style={{ fontSize: '10px', color: '#555', display: 'block', marginBottom: 1 }}>
+                    Min ({unit}):
+                  </label>
+                  <input
+                    id="range-min-input"
+                    type="number"
+                    step={activeVariable.startsWith('current') ? '0.1' : '0.5'}
+                    value={customMin !== null ? customMin : effectiveMin}
+                    onChange={(e) => {
+                      const val = parseFloat(e.target.value);
+                      setCustomMin(isNaN(val) ? null : val);
+                    }}
+                    style={{ width: '100%', fontSize: '11px', padding: '3px 4px', border: '1px solid #ccc', borderRadius: '3px' }}
+                  />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label htmlFor="range-max-input" style={{ fontSize: '10px', color: '#555', display: 'block', marginBottom: 1 }}>
+                    Max ({unit}):
+                  </label>
+                  <input
+                    id="range-max-input"
+                    type="number"
+                    step={activeVariable.startsWith('current') ? '0.1' : '0.5'}
+                    value={customMax !== null ? customMax : effectiveMax}
+                    onChange={(e) => {
+                      const val = parseFloat(e.target.value);
+                      setCustomMax(isNaN(val) ? null : val);
+                    }}
+                    style={{ width: '100%', fontSize: '11px', padding: '3px 4px', border: '1px solid #ccc', borderRadius: '3px' }}
+                  />
+                </div>
+                <div>
+                  <button
+                    id="reset-range-btn"
+                    type="button"
+                    onClick={() => {
+                      setCustomMin(null);
+                      setCustomMax(null);
+                    }}
+                    disabled={customMin === null && customMax === null}
+                    style={{
+                      fontSize: '11px',
+                      padding: '3px 8px',
+                      height: '24px',
+                      cursor: (customMin === null && customMax === null) ? 'default' : 'pointer',
+                      background: '#f0f0f0',
+                      border: '1px solid #bbb',
+                      borderRadius: '3px',
+                      opacity: (customMin === null && customMax === null) ? 0.4 : 1,
+                    }}
+                    title="Reset to variable default range"
+                  >
+                    Reset
+                  </button>
+                </div>
+              </div>
+
+              {/* Log scale toggle */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                <label style={{ fontSize: '11px', display: 'flex', alignItems: 'center', gap: '6px', cursor: canLogScale ? 'pointer' : 'not-allowed' }}>
+                  <input
+                    id="logscale-toggle"
+                    type="checkbox"
+                    checked={activeLogScale}
+                    disabled={!canLogScale}
+                    onChange={(e) => setIsLogScale(e.target.checked)}
+                  />
+                  <span>Logarithmic Scale</span>
+                </label>
+                {!canLogScale && (
+                  <span id="logscale-note" style={{ fontSize: '10px', color: '#b91c1c' }}>
+                    Requires min &gt; 0
+                  </span>
+                )}
+              </div>
+
+              {/* Dynamic WMS Legend Graphic */}
+              <div style={{ marginTop: 6, background: '#f8f9fa', padding: '6px 8px', borderRadius: '4px', border: '1px solid #ddd' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', fontWeight: 600, marginBottom: 4 }}>
+                  <span>{currentVarConfig.display_name}:</span>
+                  <span id="legend-range-label" style={{ color: '#0055aa' }}>
+                    {effectiveMin} to {effectiveMax} {unit}
+                  </span>
+                </div>
+                <div style={{ margin: '4px 0' }}>
+                  <img
+                    id="wms-legend-img"
+                    key={`${activeVariable}-${palette}-${effectiveMin}-${effectiveMax}-${activeLogScale}`}
+                    src={`/thredds/wms/amphan_bob_real/${activeVariable}?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetLegendGraphic&LAYER=${activeVariable}&STYLES=${palette === 'default' ? '' : `default-scalar/${palette}`}&COLORSCALERANGE=${effectiveMin},${effectiveMax}&WIDTH=280&HEIGHT=14${activeLogScale ? '&LOGSCALE=true' : ''}`}
+                    alt="WMS Colorbar Legend"
+                    style={{ width: '100%', height: '16px', display: 'block', borderRadius: '2px', border: '1px solid #bbb' }}
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).style.display = 'none';
+                    }}
+                  />
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: '#555' }}>
+                  <span id="legend-min-display">{effectiveMin} {unit}</span>
+                  <span id="legend-mid-display">{((effectiveMin + effectiveMax) / 2).toFixed(1)} {unit}</span>
+                  <span id="legend-max-display">{effectiveMax} {unit}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Task 3: Layer Opacity Control */}
+            <div style={{ borderTop: '1px solid #eee', paddingTop: 10, marginBottom: 12 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                <span style={{ fontWeight: 600, fontSize: '12px' }}>Temperature Scale (ncWMS):</span>
-                <span style={{ fontSize: '12px', fontWeight: 700, color: '#333' }}>
-                  {legendMin} to {legendMax}
+                <strong>Layer Opacity:</strong>
+                <span id="opacity-label" style={{ fontWeight: 600, color: '#0055aa' }}>
+                  {Math.round(layerOpacity * 100)}%
                 </span>
               </div>
-              <div
-                style={{
-                  height: '14px',
-                  width: '100%',
-                  borderRadius: '3px',
-                  background: 'linear-gradient(to right, #0000ff, #00ffff, #00ff00, #ffff00, #ff0000)',
-                  boxShadow: 'inset 0 0 2px rgba(0,0,0,0.4)',
+              <input
+                id="opacity-slider"
+                type="range"
+                min={0}
+                max={1}
+                step={0.01}
+                value={layerOpacity}
+                onChange={(e) => {
+                  const val = parseFloat(e.target.value);
+                  setLayerOpacity(val);
+                  if (layerRef.current) {
+                    layerRef.current.alpha = val;
+                  }
                 }}
+                style={{ width: '100%', cursor: 'pointer' }}
               />
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: '#555', marginTop: 2 }}>
-                <span>{legendMin}</span>
-                <span>{legendMid}</span>
-                <span>{legendMax}</span>
+            </div>
+
+            {/* Task 4: Vertical Exaggeration Control */}
+            <div style={{ borderTop: '1px solid #eee', paddingTop: 10, marginBottom: 12 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                <strong>Vertical Exaggeration:</strong>
+                <span id="vertical-exaggeration-label" style={{ fontWeight: 600, color: '#0055aa' }}>
+                  {verticalExaggeration.toFixed(1)}×
+                </span>
+              </div>
+              <input
+                id="vertical-exaggeration-slider"
+                type="range"
+                min={1.0}
+                max={10.0}
+                step={0.5}
+                value={verticalExaggeration}
+                onChange={(e) => {
+                  const val = parseFloat(e.target.value);
+                  setVerticalExaggeration(val);
+                  if (viewerRef.current && !viewerRef.current.isDestroyed()) {
+                    const viewer = viewerRef.current;
+                    viewer.scene.verticalExaggeration = val;
+                    if ('verticalExaggeration' in (viewer.scene.globe as any)) {
+                      (viewer.scene.globe as any).verticalExaggeration = val;
+                    }
+                  }
+                }}
+                style={{ width: '100%', cursor: 'pointer' }}
+              />
+              <div style={{ fontSize: '10px', color: '#777', marginTop: 2, lineHeight: 1.3 }}>
+                Operates on 3D terrain height. Ellipsoid terrain is 0m elevation everywhere, so displacement becomes visually apparent when Stage 7b bathymetry/terrain is attached.
               </div>
             </div>
 

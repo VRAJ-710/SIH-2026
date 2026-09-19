@@ -27,6 +27,8 @@ services:
       - "8000:8000"
     volumes:
       - ./ingestion/output:/ingestion/output:ro
+      - ./tds/data:/tds/data:ro
     environment:
       - DATA_DIR=/ingestion/output
+      - REAL_NC_PATH=/tds/data/amphan_bob_real.nc
     restart: unless-stopped
