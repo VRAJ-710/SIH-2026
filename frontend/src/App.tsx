@@ -25,6 +25,8 @@ interface ProfileDepthData {
   temperature?: number;
   salinity?: number;
   chlorophyll?: number;
+  current_u?: number;
+  current_v?: number;
   [key: string]: number | undefined;
 }
 
@@ -367,6 +369,7 @@ export default function App() {
       if (inst.instrument_type === 'argo') color = Cesium.Color.YELLOW;
       if (inst.instrument_type === 'glider') color = Cesium.Color.CYAN;
       if (inst.instrument_type === 'buoy') color = Cesium.Color.RED;
+      if (inst.instrument_type === 'adcp') color = Cesium.Color.fromCssColorString('#c084fc');
 
       ds.entities.add({
         position: Cesium.Cartesian3.fromDegrees(inst.lon, inst.lat),
@@ -1152,6 +1155,24 @@ export default function App() {
                     marker: { size: 5, color: '#4ade80' },
                     xaxis: 'x3',
                   },
+                  {
+                    x: selectedProfile.data.filter((d) => d.current_u !== undefined).map((d) => d.current_u!),
+                    y: selectedProfile.data.filter((d) => d.current_u !== undefined).map((d) => d.depth),
+                    type: 'scatter',
+                    mode: 'lines+markers',
+                    name: 'Current U (m/s)',
+                    line: { color: '#fb923c', width: 2 },
+                    marker: { size: 5, color: '#fb923c' },
+                  },
+                  {
+                    x: selectedProfile.data.filter((d) => d.current_v !== undefined).map((d) => d.current_v!),
+                    y: selectedProfile.data.filter((d) => d.current_v !== undefined).map((d) => d.depth),
+                    type: 'scatter',
+                    mode: 'lines+markers',
+                    name: 'Current V (m/s)',
+                    line: { color: '#c084fc', width: 2 },
+                    marker: { size: 5, color: '#c084fc' },
+                  },
                 ].filter((trace) => trace.x.length > 0)}
                 layout={{
                   width: 360,
@@ -1241,6 +1262,10 @@ export default function App() {
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <span style={{ color: '#f87171', fontSize: '14px', textShadow: '0 0 6px rgba(248, 113, 113, 0.6)' }}>●</span>
             <span style={{ color: '#e2e8f0' }}>Moored Buoy</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span style={{ color: '#c084fc', fontSize: '14px', textShadow: '0 0 6px rgba(192, 132, 252, 0.6)' }}>●</span>
+            <span style={{ color: '#e2e8f0' }}>ADCP</span>
           </div>
         </div>
       </div>
