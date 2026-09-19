@@ -92,6 +92,11 @@ const fragmentShader = /* glsl */ `
       c = mix(vec3(0.95, 0.65, 0.15), vec3(0.85, 0.10, 0.10), (t - 0.75) / 0.25);
     }
 
+    // Subtle luminance enhancement for warm-core highlights so bloom enhances rather than washes out
+    if (t > 0.75) {
+      c = mix(c, vec3(1.1, 0.5, 0.15), (t - 0.75) * 0.4);
+    }
+
     // Opacity: sigmoid-like ramp centred around the midpoint
     float opacity = smoothstep(midpoint - 0.25, midpoint + 0.25, t) * 0.6;
     return vec4(c, opacity);

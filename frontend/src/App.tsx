@@ -60,7 +60,7 @@ const DEFAULT_VARIABLES: Record<GridVariable, VariableConfig> = {
     unit: '°C',
     min_val: 20.0,
     max_val: 32.0,
-    default_palette: 'x-Rainbow',
+    default_palette: 'psu-magma',
   },
   salinity: {
     name: 'salinity',
@@ -89,13 +89,13 @@ const DEFAULT_VARIABLES: Record<GridVariable, VariableConfig> = {
 };
 
 const AVAILABLE_PALETTES = [
-  { id: 'default', label: 'Default' },
-  { id: 'x-Rainbow', label: 'Rainbow (x-Rainbow)' },
+  { id: 'psu-magma', label: 'Magma (psu-magma - Recommended)' },
   { id: 'psu-viridis', label: 'Viridis (psu-viridis)' },
-  { id: 'psu-magma', label: 'Magma (psu-magma)' },
+  { id: 'x-Rainbow', label: 'Rainbow (x-Rainbow)' },
   { id: 'div-RdBu', label: 'RdBu Diverging' },
   { id: 'seq-Blues', label: 'Blues Sequential' },
   { id: 'seq-Heat', label: 'Heat Sequential' },
+  { id: 'default', label: 'Default' },
 ];
 
 export default function App() {
@@ -125,7 +125,7 @@ export default function App() {
 
   // Stage 7a State: Variable, Palette, Range overrides, Log scale, Opacity, Vertical exaggeration
   const [activeVariable, setActiveVariable] = useState<GridVariable>('temperature');
-  const [palette, setPalette] = useState<string>('x-Rainbow');
+  const [palette, setPalette] = useState<string>('psu-magma');
   const [customMin, setCustomMin] = useState<number | null>(null);
   const [customMax, setCustomMax] = useState<number | null>(null);
   const [isLogScale, setIsLogScale] = useState<boolean>(false);
@@ -133,17 +133,28 @@ export default function App() {
   const [verticalExaggeration, setVerticalExaggeration] = useState<number>(1.0);
   const [variableConfigs, setVariableConfigs] = useState<Record<GridVariable, VariableConfig>>(DEFAULT_VARIABLES);
 
-  // Initialize Cesium Viewer
+  // Initialize Cesium Viewer (Stage 7b Visual Polish Pass)
   useEffect(() => {
     if (!containerRef.current) return;
 
+    // Task 1: Configure Cesium Ion Access Token from env
+    const ionToken = import.meta.env.VITE_CESIUM_ION_TOKEN;
+    if (ionToken) {
+      Cesium.Ion.defaultAccessToken = ionToken;
+    }
+
+    // Task 1: Replace NaturalEarthII offline imagery with Cesium World Imagery
+    const imageryPromise = Cesium.createWorldImageryAsync({
+      style: Cesium.IonWorldImageryStyle.AERIAL_WITH_LABELS,
+    }).catch((err) => {
+      console.warn('[Cesium] createWorldImageryAsync fallback to NaturalEarthII:', err);
+      return Cesium.TileMapServiceImageryProvider.fromUrl(
+        Cesium.buildModuleUrl('Assets/Textures/NaturalEarthII'),
+      );
+    });
+
     const viewer = new Cesium.Viewer(containerRef.current, {
-      baseLayer: Cesium.ImageryLayer.fromProviderAsync(
-        Cesium.TileMapServiceImageryProvider.fromUrl(
-          Cesium.buildModuleUrl('Assets/Textures/NaturalEarthII'),
-        ),
-      ),
-      terrainProvider: new Cesium.EllipsoidTerrainProvider(),
+      baseLayer: Cesium.ImageryLayer.fromProviderAsync(imageryPromise),
       baseLayerPicker: false,
       geocoder: false,
       homeButton: false,
@@ -155,9 +166,62 @@ export default function App() {
       fullscreenButton: false,
     });
 
+    // Task 1: Replace EllipsoidTerrainProvider with Cesium World Bathymetry (Asset 2426648)
+    // enabling requestVertexNormals: true so seafloor has real depth data and responds to vertical exaggeration
+    (async () => {
+      try {
+        console.log('[Cesium] Requesting Cesium World Bathymetry (Asset 2426648) with vertex normals...');
+        const bathyProvider = await Cesium.createWorldBathymetryAsync({
+          requestVertexNormals: true,
+        });
+        if (!viewer.isDestroyed()) {
+          viewer.scene.terrainProvider = bathyProvider;
+          console.log('[Cesium] Cesium World Bathymetry successfully loaded on globe.');
+        }
+      } catch (bathyErr: any) {
+        console.warn(
+          '[Cesium] Could not load World Bathymetry (Asset 2426648):',
+          bathyErr?.message || bathyErr,
+          '— falling back to Cesium World Terrain (Asset 1)...',
+        );
+        try {
+          const worldTerrainProvider = await Cesium.createWorldTerrainAsync({
+            requestVertexNormals: true,
+          });
+          if (!viewer.isDestroyed()) {
+            viewer.scene.terrainProvider = worldTerrainProvider;
+            console.log('[Cesium] Cesium World Terrain active on globe.');
+          }
+        } catch (terrainErr: any) {
+          console.error('[Cesium] Failed to load Cesium World Terrain:', terrainErr?.message || terrainErr);
+        }
+      }
+    })();
+
+    // Task 2: Dynamic sun-based shading, atmosphere, and starfield skybox
+    viewer.scene.globe.enableLighting = true;
+    if (viewer.scene.skyAtmosphere) {
+      viewer.scene.skyAtmosphere.show = true;
+    }
+    viewer.scene.globe.showGroundAtmosphere = true;
+    if (viewer.scene.skyBox) {
+      viewer.scene.skyBox.show = true;
+    }
+
+    // Task 3: Smooth cinematic camera - start in orbit from space and fly in to Amphan bbox
+    viewer.camera.setView({
+      destination: Cesium.Cartesian3.fromDegrees(87.0, 15.0, 18000000.0),
+      orientation: {
+        heading: Cesium.Math.toRadians(0),
+        pitch: Cesium.Math.toRadians(-90),
+        roll: 0.0,
+      },
+    });
+
     viewer.camera.flyTo({
       destination: AMPHAN_RECTANGLE,
-      duration: 1.5,
+      duration: 3.8,
+      easingFunction: Cesium.EasingFunction.QUADRATIC_IN_OUT,
     });
 
     const dataSource = new Cesium.CustomDataSource('instruments');
@@ -484,48 +548,67 @@ export default function App() {
     }
   };
 
+  useEffect(() => {
+    (window as any).fetchProfile = fetchProfile;
+    return () => {
+      delete (window as any).fetchProfile;
+    };
+  }, []);
+
   return (
     <div style={{ position: 'relative', width: '100vw', height: '100vh', overflow: 'hidden' }}>
-      {/* Top Left WMS Panel (Stage 7a Functional Controls) */}
+      {/* Top Left WMS Panel (Stage 7b Unified Glassmorphic HUD) */}
       <div
         id="wms-panel"
         style={{
           position: 'absolute',
-          top: 10,
-          left: 10,
+          top: 16,
+          left: 16,
           zIndex: show3DOverlay ? 25000 : 9999,
-          background: 'rgba(255, 255, 255, 0.96)',
-          padding: '14px',
-          border: '2px solid #222',
-          borderRadius: '4px',
-          color: '#000',
-          width: '390px',
-          maxHeight: 'calc(100vh - 40px)',
+          background: 'rgba(15, 23, 42, 0.88)',
+          backdropFilter: 'blur(16px)',
+          WebkitBackdropFilter: 'blur(16px)',
+          border: '1px solid rgba(56, 189, 248, 0.28)',
+          borderRadius: '14px',
+          color: '#f8fafc',
+          width: '395px',
+          maxHeight: 'calc(100vh - 36px)',
           overflowY: 'auto',
-          boxShadow: '0 4px 10px rgba(0, 0, 0, 0.25)',
-          fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-          fontSize: '13px',
+          boxShadow: '0 12px 36px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.08)',
+          fontFamily: 'Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+          fontSize: '12.5px',
+          padding: '16px',
         }}
       >
-        <div style={{ fontWeight: 700, fontSize: '15px', marginBottom: 10, borderBottom: '1px solid #ddd', paddingBottom: 6 }}>
-          Cyclone Amphan: GLORYS12 Ocean Data
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, borderBottom: '1px solid rgba(100, 116, 139, 0.25)', paddingBottom: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#38bdf8', boxShadow: '0 0 8px #38bdf8', display: 'inline-block' }} />
+            <div>
+              <div style={{ fontWeight: 700, fontSize: '13px', letterSpacing: '0.04em', textTransform: 'uppercase', color: '#f8fafc' }}>
+                Cyclone Amphan: GLORYS12
+              </div>
+              <div style={{ fontSize: '10px', color: '#94a3b8', letterSpacing: '0.02em' }}>
+                Bay of Bengal (8–23°N, 82–92°E) • Live ncWMS
+              </div>
+            </div>
+          </div>
         </div>
 
         {loadingCapabilities ? (
-          <div style={{ padding: '8px 0', color: '#555' }}>
-            Loading available depth levels & time steps from TDS...
+          <div style={{ padding: '12px 0', color: '#38bdf8', fontSize: '12px' }}>
+            ⏳ Loading available depth levels & time steps from TDS...
           </div>
         ) : (
           <>
             {/* Task 1: Ocean Variable Selector */}
-            <div style={{ marginBottom: 12, borderBottom: '1px solid #eee', paddingBottom: 10 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                <strong>Variable (WMS Layer):</strong>
-                <span id="active-variable-label" style={{ fontWeight: 600, color: '#0055aa' }}>
+            <div style={{ marginBottom: 12, borderBottom: '1px solid rgba(100, 116, 139, 0.2)', paddingBottom: 10 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                <strong style={{ color: '#cbd5e1', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Variable (WMS Layer):</strong>
+                <span id="active-variable-label" style={{ fontWeight: 700, color: '#38bdf8', fontSize: '11px' }}>
                   {currentVarConfig.display_name}
                 </span>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '4px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '6px' }}>
                 {(['temperature', 'salinity', 'current_u', 'current_v'] as GridVariable[]).map((v) => {
                   const isSelected = activeVariable === v;
                   return (
@@ -535,15 +618,19 @@ export default function App() {
                       type="button"
                       onClick={() => handleVariableChange(v)}
                       style={{
-                        padding: '5px 6px',
+                        padding: '6px 8px',
                         fontSize: '11px',
-                        fontWeight: isSelected ? 700 : 400,
+                        fontWeight: isSelected ? 700 : 500,
                         cursor: 'pointer',
-                        background: isSelected ? '#0055aa' : '#f0f0f0',
-                        color: isSelected ? '#fff' : '#222',
-                        border: isSelected ? '1px solid #003388' : '1px solid #ccc',
-                        borderRadius: '3px',
+                        background: isSelected
+                          ? 'linear-gradient(135deg, #0284c7, #0369a1)'
+                          : 'rgba(30, 41, 59, 0.65)',
+                        color: isSelected ? '#ffffff' : '#94a3b8',
+                        border: isSelected ? '1px solid #38bdf8' : '1px solid rgba(100, 116, 139, 0.3)',
+                        borderRadius: '8px',
                         textAlign: 'center',
+                        boxShadow: isSelected ? '0 2px 10px rgba(56, 189, 248, 0.3)' : 'none',
+                        transition: 'all 0.15s ease',
                       }}
                     >
                       {v === 'temperature' && '🌡️ Temperature'}
@@ -557,10 +644,10 @@ export default function App() {
             </div>
 
             {/* Depth Control Slider */}
-            <div style={{ marginBottom: 14 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                <strong>Depth (ELEVATION):</strong>
-                <span id="current-depth-label" style={{ fontWeight: 600, color: '#0055aa' }}>
+            <div style={{ marginBottom: 12, borderBottom: '1px solid rgba(100, 116, 139, 0.2)', paddingBottom: 10 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                <strong style={{ color: '#cbd5e1', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Depth (ELEVATION):</strong>
+                <span id="current-depth-label" style={{ fontWeight: 700, color: '#38bdf8', fontFamily: 'monospace', fontSize: '11.5px' }}>
                   {currentDepth ? `${currentDepth.depthMeters.toFixed(1)} m (Level ${depthIndex + 1}/${depthLevels.length})` : 'Loading...'}
                 </span>
               </div>
@@ -572,17 +659,27 @@ export default function App() {
                 step={1}
                 value={depthIndex}
                 onChange={(e) => setDepthIndex(Number(e.target.value))}
-                style={{ width: '100%', cursor: 'pointer' }}
+                style={{ width: '100%', cursor: 'pointer', accentColor: '#38bdf8' }}
               />
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#666', marginTop: 2 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: '#64748b', marginTop: 2 }}>
                 <span>Surface ({depthLevels[0]?.depthMeters.toFixed(1)}m)</span>
                 <span>Deep ({depthLevels[depthLevels.length - 1]?.depthMeters.toFixed(1)}m)</span>
               </div>
-              <div style={{ display: 'flex', gap: '4px', marginTop: 6 }}>
+              <div style={{ display: 'flex', gap: '6px', marginTop: 6 }}>
                 <button
                   type="button"
                   onClick={() => setDepthIndex(0)}
-                  style={{ flex: 1, padding: '2px 4px', fontSize: '11px', fontWeight: depthIndex === 0 ? 700 : 400, cursor: 'pointer' }}
+                  style={{
+                    flex: 1,
+                    padding: '4px 6px',
+                    fontSize: '10.5px',
+                    fontWeight: depthIndex === 0 ? 700 : 500,
+                    cursor: 'pointer',
+                    background: depthIndex === 0 ? '#0891b2' : 'rgba(30, 41, 59, 0.65)',
+                    color: depthIndex === 0 ? '#fff' : '#94a3b8',
+                    border: depthIndex === 0 ? '1px solid #22d3ee' : '1px solid rgba(100, 116, 139, 0.3)',
+                    borderRadius: '6px',
+                  }}
                 >
                   Surface (0.5m)
                 </button>
@@ -592,7 +689,17 @@ export default function App() {
                     const idx = depthLevels.findIndex((d) => d.depthMeters >= 90);
                     if (idx >= 0) setDepthIndex(idx);
                   }}
-                  style={{ flex: 1, padding: '2px 4px', fontSize: '11px', fontWeight: depthLevels[depthIndex]?.depthMeters >= 90 && depthLevels[depthIndex]?.depthMeters < 150 ? 700 : 400, cursor: 'pointer' }}
+                  style={{
+                    flex: 1,
+                    padding: '4px 6px',
+                    fontSize: '10.5px',
+                    fontWeight: depthLevels[depthIndex]?.depthMeters >= 90 && depthLevels[depthIndex]?.depthMeters < 150 ? 700 : 500,
+                    cursor: 'pointer',
+                    background: depthLevels[depthIndex]?.depthMeters >= 90 && depthLevels[depthIndex]?.depthMeters < 150 ? '#0891b2' : 'rgba(30, 41, 59, 0.65)',
+                    color: depthLevels[depthIndex]?.depthMeters >= 90 && depthLevels[depthIndex]?.depthMeters < 150 ? '#fff' : '#94a3b8',
+                    border: depthLevels[depthIndex]?.depthMeters >= 90 && depthLevels[depthIndex]?.depthMeters < 150 ? '1px solid #22d3ee' : '1px solid rgba(100, 116, 139, 0.3)',
+                    borderRadius: '6px',
+                  }}
                 >
                   Thermocline (92m)
                 </button>
@@ -602,7 +709,17 @@ export default function App() {
                     const idx = depthLevels.findIndex((d) => d.depthMeters >= 450);
                     if (idx >= 0) setDepthIndex(idx);
                   }}
-                  style={{ flex: 1, padding: '2px 4px', fontSize: '11px', fontWeight: depthLevels[depthIndex]?.depthMeters >= 400 && depthLevels[depthIndex]?.depthMeters < 600 ? 700 : 400, cursor: 'pointer' }}
+                  style={{
+                    flex: 1,
+                    padding: '4px 6px',
+                    fontSize: '10.5px',
+                    fontWeight: depthLevels[depthIndex]?.depthMeters >= 400 && depthLevels[depthIndex]?.depthMeters < 600 ? 700 : 500,
+                    cursor: 'pointer',
+                    background: depthLevels[depthIndex]?.depthMeters >= 400 && depthLevels[depthIndex]?.depthMeters < 600 ? '#0891b2' : 'rgba(30, 41, 59, 0.65)',
+                    color: depthLevels[depthIndex]?.depthMeters >= 400 && depthLevels[depthIndex]?.depthMeters < 600 ? '#fff' : '#94a3b8',
+                    border: depthLevels[depthIndex]?.depthMeters >= 400 && depthLevels[depthIndex]?.depthMeters < 600 ? '1px solid #22d3ee' : '1px solid rgba(100, 116, 139, 0.3)',
+                    borderRadius: '6px',
+                  }}
                 >
                   Deep (454m)
                 </button>
@@ -610,10 +727,10 @@ export default function App() {
             </div>
 
             {/* Time Control Scrubber & Animation */}
-            <div style={{ marginBottom: 14 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                <strong>Time (TIME):</strong>
-                <span id="current-time-label" style={{ fontWeight: 600, color: '#aa2200' }}>
+            <div style={{ marginBottom: 12, borderBottom: '1px solid rgba(100, 116, 139, 0.2)', paddingBottom: 10 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                <strong style={{ color: '#cbd5e1', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Time (TIME):</strong>
+                <span id="current-time-label" style={{ fontWeight: 700, color: '#f59e0b', fontFamily: 'monospace', fontSize: '11.5px' }}>
                   {currentTime ? `${currentTime.substring(0, 10)} (Day ${timeIndex + 1}/${timeSteps.length})` : 'Loading...'}
                 </span>
               </div>
@@ -625,9 +742,9 @@ export default function App() {
                 step={1}
                 value={timeIndex}
                 onChange={(e) => setTimeIndex(Number(e.target.value))}
-                style={{ width: '100%', cursor: 'pointer' }}
+                style={{ width: '100%', cursor: 'pointer', accentColor: '#38bdf8' }}
               />
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#666', marginTop: 2 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: '#64748b', marginTop: 2 }}>
                 <span>{timeSteps[0]?.substring(0, 10)}</span>
                 <span>{timeSteps[timeSteps.length - 1]?.substring(0, 10)}</span>
               </div>
@@ -638,12 +755,17 @@ export default function App() {
                   onClick={() => setIsPlaying(!isPlaying)}
                   style={{
                     flex: 2,
-                    padding: '4px 8px',
+                    padding: '5px 8px',
                     fontWeight: 700,
+                    fontSize: '11.5px',
                     cursor: 'pointer',
-                    background: isPlaying ? '#ffeedd' : '#eef8ff',
-                    border: '1px solid #888',
-                    borderRadius: '3px',
+                    background: isPlaying
+                      ? 'linear-gradient(135deg, rgba(239, 68, 68, 0.25), rgba(185, 28, 28, 0.35))'
+                      : 'linear-gradient(135deg, rgba(14, 165, 233, 0.25), rgba(2, 132, 199, 0.35))',
+                    border: isPlaying ? '1px solid #f87171' : '1px solid #38bdf8',
+                    borderRadius: '6px',
+                    color: '#fff',
+                    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.3)',
                   }}
                 >
                   {isPlaying ? '⏸ Pause Animation' : '▶ Play Animation'}
@@ -652,7 +774,16 @@ export default function App() {
                   id="prev-time-btn"
                   type="button"
                   onClick={() => setTimeIndex((prev) => (prev > 0 ? prev - 1 : timeSteps.length - 1))}
-                  style={{ flex: 1, padding: '4px 6px', cursor: 'pointer' }}
+                  style={{
+                    flex: 1,
+                    padding: '5px 6px',
+                    fontSize: '11px',
+                    cursor: 'pointer',
+                    background: 'rgba(30, 41, 59, 0.65)',
+                    border: '1px solid rgba(100, 116, 139, 0.3)',
+                    borderRadius: '6px',
+                    color: '#cbd5e1',
+                  }}
                   title="Previous Day"
                 >
                   ⏮ Prev
@@ -661,7 +792,16 @@ export default function App() {
                   id="next-time-btn"
                   type="button"
                   onClick={() => setTimeIndex((prev) => (prev < timeSteps.length - 1 ? prev + 1 : 0))}
-                  style={{ flex: 1, padding: '4px 6px', cursor: 'pointer' }}
+                  style={{
+                    flex: 1,
+                    padding: '5px 6px',
+                    fontSize: '11px',
+                    cursor: 'pointer',
+                    background: 'rgba(30, 41, 59, 0.65)',
+                    border: '1px solid rgba(100, 116, 139, 0.3)',
+                    borderRadius: '6px',
+                    color: '#cbd5e1',
+                  }}
                   title="Next Day"
                 >
                   Next ⏭
@@ -670,19 +810,28 @@ export default function App() {
             </div>
 
             {/* Task 2: Colorbar Editor & Scale Controls */}
-            <div style={{ borderTop: '1px solid #eee', paddingTop: 10, marginBottom: 12 }}>
-              <div style={{ fontWeight: 700, fontSize: '13px', marginBottom: 6, color: '#222' }}>
+            <div style={{ marginBottom: 12, borderBottom: '1px solid rgba(100, 116, 139, 0.2)', paddingBottom: 10 }}>
+              <div style={{ fontWeight: 700, fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.03em', marginBottom: 8, color: '#cbd5e1' }}>
                 Colorbar & Scale Controls
               </div>
 
               {/* Palette selector */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-                <label htmlFor="palette-select" style={{ fontSize: '11px', fontWeight: 600 }}>Palette:</label>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                <label htmlFor="palette-select" style={{ fontSize: '11px', color: '#94a3b8' }}>Palette:</label>
                 <select
                   id="palette-select"
                   value={palette}
                   onChange={(e) => setPalette(e.target.value)}
-                  style={{ fontSize: '11px', padding: '3px 6px', borderRadius: '3px', border: '1px solid #ccc', width: '220px' }}
+                  style={{
+                    fontSize: '11px',
+                    padding: '4px 8px',
+                    borderRadius: '6px',
+                    border: '1px solid rgba(100, 116, 139, 0.4)',
+                    background: '#1e293b',
+                    color: '#f8fafc',
+                    width: '230px',
+                    cursor: 'pointer',
+                  }}
                 >
                   {AVAILABLE_PALETTES.map((p) => (
                     <option key={p.id} value={p.id}>{p.label}</option>
@@ -691,9 +840,9 @@ export default function App() {
               </div>
 
               {/* Min/Max Overrides */}
-              <div style={{ display: 'flex', alignItems: 'flex-end', gap: '6px', marginBottom: 6 }}>
+              <div style={{ display: 'flex', alignItems: 'flex-end', gap: '6px', marginBottom: 8 }}>
                 <div style={{ flex: 1 }}>
-                  <label htmlFor="range-min-input" style={{ fontSize: '10px', color: '#555', display: 'block', marginBottom: 1 }}>
+                  <label htmlFor="range-min-input" style={{ fontSize: '10px', color: '#94a3b8', display: 'block', marginBottom: 2 }}>
                     Min ({unit}):
                   </label>
                   <input
@@ -705,11 +854,20 @@ export default function App() {
                       const val = parseFloat(e.target.value);
                       setCustomMin(isNaN(val) ? null : val);
                     }}
-                    style={{ width: '100%', fontSize: '11px', padding: '3px 4px', border: '1px solid #ccc', borderRadius: '3px' }}
+                    style={{
+                      width: '100%',
+                      fontSize: '11px',
+                      padding: '4px 6px',
+                      background: '#1e293b',
+                      color: '#f8fafc',
+                      border: '1px solid rgba(100, 116, 139, 0.4)',
+                      borderRadius: '6px',
+                      fontFamily: 'monospace',
+                    }}
                   />
                 </div>
                 <div style={{ flex: 1 }}>
-                  <label htmlFor="range-max-input" style={{ fontSize: '10px', color: '#555', display: 'block', marginBottom: 1 }}>
+                  <label htmlFor="range-max-input" style={{ fontSize: '10px', color: '#94a3b8', display: 'block', marginBottom: 2 }}>
                     Max ({unit}):
                   </label>
                   <input
@@ -721,7 +879,16 @@ export default function App() {
                       const val = parseFloat(e.target.value);
                       setCustomMax(isNaN(val) ? null : val);
                     }}
-                    style={{ width: '100%', fontSize: '11px', padding: '3px 4px', border: '1px solid #ccc', borderRadius: '3px' }}
+                    style={{
+                      width: '100%',
+                      fontSize: '11px',
+                      padding: '4px 6px',
+                      background: '#1e293b',
+                      color: '#f8fafc',
+                      border: '1px solid rgba(100, 116, 139, 0.4)',
+                      borderRadius: '6px',
+                      fontFamily: 'monospace',
+                    }}
                   />
                 </div>
                 <div>
@@ -735,13 +902,14 @@ export default function App() {
                     disabled={customMin === null && customMax === null}
                     style={{
                       fontSize: '11px',
-                      padding: '3px 8px',
-                      height: '24px',
+                      padding: '4px 8px',
+                      height: '26px',
                       cursor: (customMin === null && customMax === null) ? 'default' : 'pointer',
-                      background: '#f0f0f0',
-                      border: '1px solid #bbb',
-                      borderRadius: '3px',
-                      opacity: (customMin === null && customMax === null) ? 0.4 : 1,
+                      background: 'rgba(51, 65, 85, 0.65)',
+                      border: '1px solid rgba(100, 116, 139, 0.4)',
+                      borderRadius: '6px',
+                      color: '#e2e8f0',
+                      opacity: (customMin === null && customMax === null) ? 0.35 : 1,
                     }}
                     title="Reset to variable default range"
                   >
@@ -751,45 +919,46 @@ export default function App() {
               </div>
 
               {/* Log scale toggle */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-                <label style={{ fontSize: '11px', display: 'flex', alignItems: 'center', gap: '6px', cursor: canLogScale ? 'pointer' : 'not-allowed' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                <label style={{ fontSize: '11px', display: 'flex', alignItems: 'center', gap: '6px', color: '#cbd5e1', cursor: canLogScale ? 'pointer' : 'not-allowed' }}>
                   <input
                     id="logscale-toggle"
                     type="checkbox"
                     checked={activeLogScale}
                     disabled={!canLogScale}
                     onChange={(e) => setIsLogScale(e.target.checked)}
+                    style={{ accentColor: '#38bdf8' }}
                   />
                   <span>Logarithmic Scale</span>
                 </label>
                 {!canLogScale && (
-                  <span id="logscale-note" style={{ fontSize: '10px', color: '#b91c1c' }}>
+                  <span id="logscale-note" style={{ fontSize: '10px', color: '#f87171' }}>
                     Requires min &gt; 0
                   </span>
                 )}
               </div>
 
               {/* Dynamic WMS Legend Graphic */}
-              <div style={{ marginTop: 6, background: '#f8f9fa', padding: '6px 8px', borderRadius: '4px', border: '1px solid #ddd' }}>
+              <div style={{ marginTop: 6, background: 'rgba(15, 23, 42, 0.7)', padding: '8px 10px', borderRadius: '8px', border: '1px solid rgba(56, 189, 248, 0.2)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', fontWeight: 600, marginBottom: 4 }}>
-                  <span>{currentVarConfig.display_name}:</span>
-                  <span id="legend-range-label" style={{ color: '#0055aa' }}>
+                  <span style={{ color: '#cbd5e1' }}>{currentVarConfig.display_name}:</span>
+                  <span id="legend-range-label" style={{ color: '#38bdf8', fontFamily: 'monospace' }}>
                     {effectiveMin} to {effectiveMax} {unit}
                   </span>
                 </div>
-                <div style={{ margin: '4px 0' }}>
+                <div style={{ margin: '6px 0' }}>
                   <img
                     id="wms-legend-img"
                     key={`${activeVariable}-${palette}-${effectiveMin}-${effectiveMax}-${activeLogScale}`}
                     src={`/thredds/wms/amphan_bob_real/${activeVariable}?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetLegendGraphic&LAYER=${activeVariable}&STYLES=${palette === 'default' ? '' : `default-scalar/${palette}`}&COLORSCALERANGE=${effectiveMin},${effectiveMax}&WIDTH=280&HEIGHT=14${activeLogScale ? '&LOGSCALE=true' : ''}`}
                     alt="WMS Colorbar Legend"
-                    style={{ width: '100%', height: '16px', display: 'block', borderRadius: '2px', border: '1px solid #bbb' }}
+                    style={{ width: '100%', height: '16px', display: 'block', borderRadius: '4px', border: '1px solid rgba(100, 116, 139, 0.3)' }}
                     onError={(e) => {
                       (e.target as HTMLImageElement).style.display = 'none';
                     }}
                   />
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: '#555' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: '#94a3b8', fontFamily: 'monospace' }}>
                   <span id="legend-min-display">{effectiveMin} {unit}</span>
                   <span id="legend-mid-display">{((effectiveMin + effectiveMax) / 2).toFixed(1)} {unit}</span>
                   <span id="legend-max-display">{effectiveMax} {unit}</span>
@@ -798,10 +967,10 @@ export default function App() {
             </div>
 
             {/* Task 3: Layer Opacity Control */}
-            <div style={{ borderTop: '1px solid #eee', paddingTop: 10, marginBottom: 12 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                <strong>Layer Opacity:</strong>
-                <span id="opacity-label" style={{ fontWeight: 600, color: '#0055aa' }}>
+            <div style={{ marginBottom: 12, borderBottom: '1px solid rgba(100, 116, 139, 0.2)', paddingBottom: 10 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                <strong style={{ color: '#cbd5e1', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Layer Opacity:</strong>
+                <span id="opacity-label" style={{ fontWeight: 700, color: '#38bdf8', fontFamily: 'monospace', fontSize: '11.5px' }}>
                   {Math.round(layerOpacity * 100)}%
                 </span>
               </div>
@@ -819,15 +988,15 @@ export default function App() {
                     layerRef.current.alpha = val;
                   }
                 }}
-                style={{ width: '100%', cursor: 'pointer' }}
+                style={{ width: '100%', cursor: 'pointer', accentColor: '#38bdf8' }}
               />
             </div>
 
             {/* Task 4: Vertical Exaggeration Control */}
-            <div style={{ borderTop: '1px solid #eee', paddingTop: 10, marginBottom: 12 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                <strong>Vertical Exaggeration:</strong>
-                <span id="vertical-exaggeration-label" style={{ fontWeight: 600, color: '#0055aa' }}>
+            <div style={{ marginBottom: 12, borderBottom: '1px solid rgba(100, 116, 139, 0.2)', paddingBottom: 10 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                <strong style={{ color: '#cbd5e1', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Vertical Exaggeration:</strong>
+                <span id="vertical-exaggeration-label" style={{ fontWeight: 700, color: '#38bdf8', fontFamily: 'monospace', fontSize: '11.5px' }}>
                   {verticalExaggeration.toFixed(1)}×
                 </span>
               </div>
@@ -849,15 +1018,15 @@ export default function App() {
                     }
                   }
                 }}
-                style={{ width: '100%', cursor: 'pointer' }}
+                style={{ width: '100%', cursor: 'pointer', accentColor: '#38bdf8' }}
               />
-              <div style={{ fontSize: '10px', color: '#777', marginTop: 2, lineHeight: 1.3 }}>
-                Operates on 3D terrain height. Ellipsoid terrain is 0m elevation everywhere, so displacement becomes visually apparent when Stage 7b bathymetry/terrain is attached.
+              <div style={{ fontSize: '10px', color: '#64748b', marginTop: 3, lineHeight: 1.35 }}>
+                Exaggerates 3D seafloor bathymetry and coastal relief across the Bay of Bengal basin.
               </div>
             </div>
 
             {/* Stage 6b: Drill into 3D Volumetric View */}
-            <div style={{ borderTop: '1px solid #eee', paddingTop: 10, marginTop: 6 }}>
+            <div style={{ paddingTop: 4 }}>
               <button
                 id="drill-3d-button"
                 type="button"
@@ -865,126 +1034,215 @@ export default function App() {
                 disabled={!currentTime}
                 style={{
                   width: '100%',
-                  padding: '8px 12px',
+                  padding: '9px 12px',
                   fontWeight: 700,
-                  fontSize: '13px',
+                  fontSize: '12.5px',
                   cursor: currentTime ? 'pointer' : 'not-allowed',
                   background: show3DOverlay
                     ? 'linear-gradient(135deg, #e11d48, #be123c)'
-                    : 'linear-gradient(135deg, #0891b2, #0e7490)',
+                    : 'linear-gradient(135deg, #0284c7, #0369a1)',
                   color: '#fff',
-                  border: show3DOverlay ? '1px solid #be123c' : '1px solid #0e7490',
-                  borderRadius: '6px',
-                  boxShadow: '0 2px 6px rgba(0, 0, 0, 0.25)',
+                  border: show3DOverlay ? '1px solid #f43f5e' : '1px solid #38bdf8',
+                  borderRadius: '8px',
+                  boxShadow: '0 4px 14px rgba(2, 132, 199, 0.4)',
                   letterSpacing: '0.03em',
                   opacity: currentTime ? 1 : 0.5,
+                  transition: 'all 0.2s',
                 }}
               >
                 {show3DOverlay ? '✕ Close 3D Volumetric View' : '🌊 Drill into 3D Volumetric View'}
               </button>
-              <div style={{ fontSize: '10px', color: '#888', marginTop: 4, textAlign: 'center' as const }}>
-                {show3DOverlay ? 'Showing 3D ocean temperature volume' : 'Opens 3D temperature volume (84–90°E, 14–18°N, 0–200m)'}
+              <div style={{ fontSize: '10px', color: '#64748b', marginTop: 5, textAlign: 'center' as const }}>
+                {show3DOverlay ? 'Showing 3D ocean temperature volume with thermal bloom' : 'Opens 3D temperature volume (84–90°E, 14–18°N, 0–200m)'}
               </div>
             </div>
           </>
         )}
       </div>
 
-      {/* Profile Popup */}
+      {/* Profile Popup (Stage 7b Glassmorphic Dark Layout) */}
       {(selectedProfile || loadingProfile) && (
         <div
+          id="profile-popup"
           style={{
             position: 'absolute',
             bottom: 20,
             right: 20,
             zIndex: 9999,
-            background: 'white',
-            padding: '16px',
-            border: '2px solid #333',
+            background: 'rgba(15, 23, 42, 0.92)',
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+            padding: '16px 18px',
+            border: '1px solid rgba(56, 189, 248, 0.35)',
+            borderRadius: '14px',
+            color: '#f8fafc',
             width: '400px',
-            boxShadow: '0 4px 6px rgba(0,0,0,0.3)',
-            maxHeight: '600px',
-            overflowY: 'auto'
+            boxShadow: '0 16px 40px rgba(0, 0, 0, 0.6)',
+            maxHeight: '620px',
+            overflowY: 'auto',
+            fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
           }}
         >
           {loadingProfile ? (
-            <div>Loading profile...</div>
+            <div style={{ padding: '20px', textAlign: 'center', color: '#38bdf8', fontSize: '13px' }}>
+              ⏳ Loading profile data from /api/instrument/...
+            </div>
           ) : selectedProfile ? (
             <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
-                <h3 style={{ margin: 0 }}>
-                  {selectedProfile.instrument_type.toUpperCase()} - {selectedProfile.instrument_id}
-                </h3>
-                <button onClick={() => setSelectedProfile(null)}>X</button>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '13.5px', fontWeight: 700, letterSpacing: '0.03em', textTransform: 'uppercase', color: '#f8fafc' }}>
+                    {selectedProfile.instrument_type.toUpperCase()} • {selectedProfile.instrument_id}
+                  </h3>
+                  <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: 2 }}>
+                    {selectedProfile.time.substring(0, 10)} | {selectedProfile.lat.toFixed(4)}°N, {selectedProfile.lon.toFixed(4)}°E
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSelectedProfile(null)}
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.1)',
+                    border: '1px solid rgba(255, 255, 255, 0.2)',
+                    borderRadius: '6px',
+                    color: '#fff',
+                    width: '28px',
+                    height: '28px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '13px',
+                    fontWeight: 700,
+                  }}
+                  title="Close Profile Popup"
+                >
+                  ✕
+                </button>
               </div>
-              <div style={{ fontSize: '12px', marginBottom: 16 }}>
-                Time: {selectedProfile.time}<br/>
-                Location: {selectedProfile.lat.toFixed(4)}°N, {selectedProfile.lon.toFixed(4)}°E
-              </div>
-              
+
               <Plot
                 data={[
                   {
-                    x: selectedProfile.data.filter(d => d.temperature !== undefined).map(d => d.temperature!),
-                    y: selectedProfile.data.filter(d => d.temperature !== undefined).map(d => d.depth),
+                    x: selectedProfile.data.filter((d) => d.temperature !== undefined).map((d) => d.temperature!),
+                    y: selectedProfile.data.filter((d) => d.temperature !== undefined).map((d) => d.depth),
                     type: 'scatter',
                     mode: 'lines+markers',
                     name: 'Temp (°C)',
-                    line: { color: 'red' },
+                    line: { color: '#f87171', width: 2 },
+                    marker: { size: 5, color: '#f87171' },
                   },
                   {
-                    x: selectedProfile.data.filter(d => d.salinity !== undefined).map(d => d.salinity!),
-                    y: selectedProfile.data.filter(d => d.salinity !== undefined).map(d => d.depth),
+                    x: selectedProfile.data.filter((d) => d.salinity !== undefined).map((d) => d.salinity!),
+                    y: selectedProfile.data.filter((d) => d.salinity !== undefined).map((d) => d.depth),
                     type: 'scatter',
                     mode: 'lines+markers',
                     name: 'Salinity (PSU)',
-                    line: { color: 'blue' },
-                    xaxis: 'x2', // Use a secondary x-axis for salinity since its scale differs
+                    line: { color: '#38bdf8', width: 2 },
+                    marker: { size: 5, color: '#38bdf8' },
+                    xaxis: 'x2',
                   },
                   {
-                    x: selectedProfile.data.filter(d => d.chlorophyll !== undefined).map(d => d.chlorophyll!),
-                    y: selectedProfile.data.filter(d => d.chlorophyll !== undefined).map(d => d.depth),
+                    x: selectedProfile.data.filter((d) => d.chlorophyll !== undefined).map((d) => d.chlorophyll!),
+                    y: selectedProfile.data.filter((d) => d.chlorophyll !== undefined).map((d) => d.depth),
                     type: 'scatter',
                     mode: 'lines+markers',
                     name: 'Chl-a (mg/m³)',
-                    line: { color: 'green' },
-                    xaxis: 'x3', // Use a tertiary x-axis for chlorophyll
-                  }
-                ].filter(trace => trace.x.length > 0)}
+                    line: { color: '#4ade80', width: 2 },
+                    marker: { size: 5, color: '#4ade80' },
+                    xaxis: 'x3',
+                  },
+                ].filter((trace) => trace.x.length > 0)}
                 layout={{
                   width: 360,
-                  height: 400,
-                  margin: { l: 50, r: 20, t: 30, b: 40 },
-                  yaxis: { title: 'Depth (m)', autorange: 'reversed' },
-                  xaxis: { title: 'Temperature', side: 'bottom', showgrid: false },
-                  xaxis2: { title: 'Salinity', side: 'top', overlaying: 'x', showgrid: false },
-                  xaxis3: { title: 'Chlorophyll', side: 'top', overlaying: 'x', showgrid: false, position: 0.85 },
+                  height: 380,
+                  margin: { l: 50, r: 20, t: 35, b: 35 },
+                  paper_bgcolor: 'rgba(0, 0, 0, 0)',
+                  plot_bgcolor: 'rgba(15, 23, 42, 0.7)',
+                  font: { color: '#cbd5e1', family: 'Inter, system-ui, sans-serif', size: 10 },
+                  yaxis: {
+                    title: 'Depth (m)',
+                    autorange: 'reversed',
+                    color: '#94a3b8',
+                    gridcolor: 'rgba(100, 116, 139, 0.2)',
+                    zerolinecolor: 'rgba(100, 116, 139, 0.3)',
+                  },
+                  xaxis: {
+                    title: 'Temp (°C)',
+                    side: 'bottom',
+                    color: '#f87171',
+                    showgrid: false,
+                    tickcolor: '#f87171',
+                  },
+                  xaxis2: {
+                    title: 'Salinity (PSU)',
+                    side: 'top',
+                    overlaying: 'x',
+                    color: '#38bdf8',
+                    showgrid: false,
+                    tickcolor: '#38bdf8',
+                  },
+                  xaxis3: {
+                    title: 'Chl-a',
+                    side: 'top',
+                    overlaying: 'x',
+                    color: '#4ade80',
+                    showgrid: false,
+                    position: 0.88,
+                    tickcolor: '#4ade80',
+                  },
                   showlegend: true,
-                  legend: { orientation: 'h', y: -0.2 }
+                  legend: {
+                    orientation: 'h',
+                    y: -0.22,
+                    font: { color: '#cbd5e1', size: 10 },
+                    bgcolor: 'rgba(0, 0, 0, 0)',
+                  },
                 }}
-                config={{ displayModeBar: false }}
+                config={{ displayModeBar: false, responsive: true }}
               />
             </div>
           ) : null}
         </div>
       )}
 
-      {/* Legend */}
+      {/* Legend (Stage 7b Glassmorphic Dark Layout) */}
       <div
+        id="instruments-legend"
         style={{
           position: 'absolute',
           bottom: 20,
-          left: 20,
+          left: 424,
           zIndex: 9999,
-          background: 'rgba(255, 255, 255, 0.95)',
-          padding: '12px',
-          border: '2px solid #333',
+          background: 'rgba(15, 23, 42, 0.88)',
+          backdropFilter: 'blur(16px)',
+          WebkitBackdropFilter: 'blur(16px)',
+          padding: '10px 14px',
+          border: '1px solid rgba(56, 189, 248, 0.28)',
+          borderRadius: '12px',
+          color: '#f8fafc',
+          boxShadow: '0 8px 24px rgba(0, 0, 0, 0.5)',
+          fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
+          fontSize: '11.5px',
         }}
       >
-        <div style={{ fontWeight: 700, marginBottom: 8 }}>Instruments</div>
-        <div><span style={{ color: 'yellow', textShadow: '0 0 2px black' }}>●</span> Argo</div>
-        <div><span style={{ color: 'cyan', textShadow: '0 0 2px black' }}>●</span> Glider</div>
-        <div><span style={{ color: 'red', textShadow: '0 0 2px black' }}>●</span> Buoy</div>
+        <div style={{ fontWeight: 700, fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.04em', color: '#94a3b8', marginBottom: 6 }}>
+          In-Situ Instruments
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span style={{ color: '#facc15', fontSize: '14px', textShadow: '0 0 6px rgba(250, 204, 21, 0.6)' }}>●</span>
+            <span style={{ color: '#e2e8f0' }}>Argo Float</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span style={{ color: '#22d3ee', fontSize: '14px', textShadow: '0 0 6px rgba(34, 211, 238, 0.6)' }}>●</span>
+            <span style={{ color: '#e2e8f0' }}>Glider</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span style={{ color: '#f87171', fontSize: '14px', textShadow: '0 0 6px rgba(248, 113, 113, 0.6)' }}>●</span>
+            <span style={{ color: '#e2e8f0' }}>Moored Buoy</span>
+          </div>
+        </div>
       </div>
 
       <div ref={containerRef} style={{ width: '100%', height: '100%' }} />

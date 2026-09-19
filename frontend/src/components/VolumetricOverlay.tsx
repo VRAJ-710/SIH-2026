@@ -28,9 +28,13 @@ import {
   LineSegments,
   PerspectiveCamera,
   Scene,
+  Vector2,
   WebGLRenderer,
 } from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import { fetchVolumeData, type VolumeData } from '../lib/fetchVolumeData';
 import {
   createVolumeRaymarchReal,
@@ -79,6 +83,8 @@ export default function VolumetricOverlay({ currentTime, onClose }: VolumetricOv
     scene: Scene;
     camera: PerspectiveCamera;
     renderer: WebGLRenderer;
+    composer: EffectComposer;
+    bloomPass: UnrealBloomPass;
     controls: OrbitControls;
     raymarch: VolumeRaymarchRealHandle | null;
     isosurface: VolumeIsosurfaceRealHandle | null;
@@ -116,6 +122,21 @@ export default function VolumetricOverlay({ currentTime, onClose }: VolumetricOv
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     container.appendChild(renderer.domElement);
 
+    // Post-processing Bloom pipeline (Stage 7b Task 6)
+    const composer = new EffectComposer(renderer);
+    const renderPass = new RenderPass(scene, camera);
+    composer.addPass(renderPass);
+
+    // Warm-core thermal bloom pass: threshold 0.65 selects high-thermal core highlights,
+    // strength 0.40 provides a rich organic glow while preserving internal volume details
+    const bloomPass = new UnrealBloomPass(
+      new Vector2(width, height),
+      0.40, // strength
+      0.35, // radius
+      0.65  // threshold
+    );
+    composer.addPass(bloomPass);
+
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.05;
@@ -143,7 +164,7 @@ export default function VolumetricOverlay({ currentTime, onClose }: VolumetricOv
     let frameCount = 0;
     let lastFpsUpdate = performance.now();
 
-    // Animation loop
+    // Animation loop using composer.render() for bloom postprocessing
     let animFrameId = 0;
     const animate = () => {
       animFrameId = requestAnimationFrame(animate);
@@ -155,7 +176,7 @@ export default function VolumetricOverlay({ currentTime, onClose }: VolumetricOv
         lastFpsUpdate = now;
       }
       controls.update();
-      renderer.render(scene, camera);
+      composer.render();
     };
     animate();
 
@@ -166,6 +187,8 @@ export default function VolumetricOverlay({ currentTime, onClose }: VolumetricOv
       camera.aspect = w / h;
       camera.updateProjectionMatrix();
       renderer.setSize(w, h);
+      composer.setSize(w, h);
+      bloomPass.resolution.set(w, h);
     };
     window.addEventListener('resize', handleResize);
 
@@ -173,6 +196,8 @@ export default function VolumetricOverlay({ currentTime, onClose }: VolumetricOv
       scene,
       camera,
       renderer,
+      composer,
+      bloomPass,
       controls,
       raymarch: null,
       isosurface: null,
@@ -186,6 +211,8 @@ export default function VolumetricOverlay({ currentTime, onClose }: VolumetricOv
       sceneRef.current?.isosurface?.dispose();
       boxGeo.dispose();
       edges.dispose();
+      bloomPass.dispose();
+      composer.dispose();
       renderer.dispose();
       if (container && renderer.domElement.parentElement === container) {
         container.removeChild(renderer.domElement);
