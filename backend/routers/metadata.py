@@ -104,6 +104,11 @@ PLUGINS_REGISTRY: list[dict[str, Any]] = [
         "type": "point",
         "status": "stub",
     },
+    {
+        "name": "Copernicus Marine NRT Ingestor (Live Mode)",
+        "type": "grid",
+        "status": "stub",
+    },
 ]
 
 

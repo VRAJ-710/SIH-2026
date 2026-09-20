@@ -4,11 +4,14 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
+import threading
 from typing import Any
 
+import numpy as np
 import pandas as pd
+import xarray as xr
 
-from backend.config import DATA_DIR
+from backend.config import DATA_DIR, REAL_NC_PATH
 
 logger = logging.getLogger(__name__)
 
@@ -21,12 +24,26 @@ PARQUET_FILES = [
 
 
 class DataStore:
-    """Manages loaded in-memory point dataset tables."""
+    """Manages loaded in-memory point dataset tables and model grid validation."""
 
     def __init__(self, data_dir: Path | None = None) -> None:
         self.data_dir = data_dir or DATA_DIR
         self._df: pd.DataFrame = pd.DataFrame()
+        self._nc_ds: xr.Dataset | None = None
+        self._nc_lock = threading.Lock()
         self.load_data()
+
+    def get_model_dataset(self) -> xr.Dataset | None:
+        """Lazily load and cache the GLORYS12 physical grid NetCDF dataset."""
+        if self._nc_ds is None:
+            with self._nc_lock:
+                if self._nc_ds is None and REAL_NC_PATH.exists():
+                    try:
+                        self._nc_ds = xr.open_dataset(REAL_NC_PATH)
+                        logger.info("Opened GLORYS12 grid NetCDF from %s", REAL_NC_PATH)
+                    except Exception as exc:
+                        logger.error("Failed to open grid NetCDF %s: %s", REAL_NC_PATH, exc)
+        return self._nc_ds
 
     def load_data(self) -> None:
         """Load and concatenate all available parquet point files."""
@@ -212,12 +229,73 @@ class DataStore:
         # Sort strictly ascending by depth (meters below surface)
         depth_data.sort(key=lambda d: d["depth"])
 
+        # Model validation calculation per CONTRACTS.md Section 3(b)
+        model_temperature_mae: float | None = None
+        model_salinity_mae: float | None = None
+
+        # NOTE: Glider data is BoBBLE July 2016 (sample/demonstration only, not Amphan May 2020).
+        # For glider instruments, EXPLICITLY DO NOT compute or return model validation fields
+        # (return null for both model lines and MAE, due to the temporal mismatch).
+        if inst_type.lower() == "glider":
+            for row in depth_data:
+                row["temperature_model"] = None
+                row["salinity_model"] = None
+        else:
+            ds = self.get_model_dataset()
+            # Grid bounds check: 8.0 to 23.0°N, 82.0 to 92.0°E
+            in_bounds = (8.0 <= lat <= 23.0) and (82.0 <= lon <= 92.0)
+            if ds is not None and in_bounds:
+                try:
+                    t_parsed = np.datetime64(pd.to_datetime(selected_time).tz_localize(None))
+                    # Nearest time slice & bilinear spatial interpolation
+                    pt = ds.sel(time=t_parsed, method="nearest").interp(lat=lat, lon=lon)
+                    measured_depths = [d["depth"] for d in depth_data]
+
+                    # Interpolate to instrument's exact measured depths WITHOUT extrapolation.
+                    # Depths beyond the model grid's available vertical coverage at this location
+                    # (e.g. surface layer < 0.494m or depths below local seafloor bathymetry)
+                    # evaluate to NaN.
+                    t_arr = np.atleast_1d(pt["temperature"].interp(depth=measured_depths).values)
+                    s_arr = np.atleast_1d(pt["salinity"].interp(depth=measured_depths).values)
+
+                    t_diffs: list[float] = []
+                    s_diffs: list[float] = []
+
+                    for idx, row in enumerate(depth_data):
+                        t_mod_val = float(t_arr[idx]) if not np.isnan(t_arr[idx]) else None
+                        s_mod_val = float(s_arr[idx]) if not np.isnan(s_arr[idx]) else None
+
+                        row["temperature_model"] = round(t_mod_val, 4) if t_mod_val is not None else None
+                        row["salinity_model"] = round(s_mod_val, 4) if s_mod_val is not None else None
+
+                        # Exclude null depths from MAE calculation
+                        if t_mod_val is not None and "temperature" in row and row["temperature"] is not None:
+                            t_diffs.append(abs(row["temperature"] - t_mod_val))
+                        if s_mod_val is not None and "salinity" in row and row["salinity"] is not None:
+                            s_diffs.append(abs(row["salinity"] - s_mod_val))
+
+                    if t_diffs:
+                        model_temperature_mae = round(float(np.mean(t_diffs)), 3)
+                    if s_diffs:
+                        model_salinity_mae = round(float(np.mean(s_diffs)), 3)
+                except Exception as exc:
+                    logger.warning("Failed computing model validation for instrument %s: %s", search_id, exc)
+                    for row in depth_data:
+                        row["temperature_model"] = None
+                        row["salinity_model"] = None
+            else:
+                for row in depth_data:
+                    row["temperature_model"] = None
+                    row["salinity_model"] = None
+
         return {
             "instrument_id": search_id,
             "instrument_type": inst_type,
             "lat": round(lat, 4),
             "lon": round(lon, 4),
             "time": selected_time,
+            "model_temperature_mae": model_temperature_mae,
+            "model_salinity_mae": model_salinity_mae,
             "data": depth_data,
         }
 

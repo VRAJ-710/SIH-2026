@@ -28,11 +28,13 @@ interface InstrumentMarker {
 interface ProfileDepthData {
   depth: number;
   temperature?: number;
+  temperature_model?: number | null;
   salinity?: number;
+  salinity_model?: number | null;
   chlorophyll?: number;
   current_u?: number;
   current_v?: number;
-  [key: string]: number | undefined;
+  [key: string]: number | null | undefined;
 }
 
 interface InstrumentProfile {
@@ -41,6 +43,8 @@ interface InstrumentProfile {
   lat: number;
   lon: number;
   time: string;
+  model_temperature_mae?: number | null;
+  model_salinity_mae?: number | null;
   data: ProfileDepthData[];
 }
 
@@ -1038,6 +1042,80 @@ export default function App() {
           </div>
         )}
 
+        {/* Live Ocean Data Mode Stub (Stage Differentiators Task B2) */}
+        {uiMode === 'forecaster' && (
+          <div
+            id="live-data-stub-card"
+            style={{
+              marginBottom: 16,
+              padding: '8px 10px',
+              background: '#242426',
+              borderRadius: '6px',
+              border: '1px solid rgba(255, 255, 255, 0.08)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 4,
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ fontSize: '11px', fontWeight: 600, color: '#9ca3af', letterSpacing: '0.02em' }}>
+                  📡 LIVE OCEAN DATA
+                </span>
+                <span
+                  style={{
+                    fontSize: '9px',
+                    fontWeight: 700,
+                    padding: '1px 5px',
+                    background: 'rgba(234, 179, 8, 0.15)',
+                    color: '#eab308',
+                    border: '1px solid rgba(234, 179, 8, 0.3)',
+                    borderRadius: '4px',
+                    letterSpacing: '0.04em',
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  Coming Soon
+                </span>
+              </div>
+              <div
+                title="The ingestion architecture supports live NRT Copernicus Marine streams (GLOBAL_ANALYSISFORECAST_PHY_001_024). Currently serving historical Amphan reanalysis (May 2020) for scientific reproducibility."
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  opacity: 0.5,
+                  cursor: 'not-allowed',
+                }}
+              >
+                <input
+                  type="checkbox"
+                  id="live-mode-toggle"
+                  disabled
+                  checked={false}
+                  readOnly
+                  style={{
+                    cursor: 'not-allowed',
+                    accentColor: '#0284c7',
+                    width: '14px',
+                    height: '14px',
+                  }}
+                />
+              </div>
+            </div>
+            <div
+              title="The ingestion architecture supports live NRT Copernicus Marine streams (GLOBAL_ANALYSISFORECAST_PHY_001_024). Currently serving historical Amphan reanalysis (May 2020) for scientific reproducibility."
+              style={{
+                fontSize: '10px',
+                color: '#9ca3af',
+                lineHeight: 1.35,
+                cursor: 'help',
+              }}
+            >
+              Architecture ready for Copernicus NRT streams; currently serving Amphan 2020 reanalysis for research reproducibility.
+            </div>
+          </div>
+        )}
+
         {/* Prominent Guided Tour Banner in Public Mode */}
         {uiMode === 'public' && !isTourActive && (
           <div
@@ -1591,180 +1669,252 @@ export default function App() {
             <div style={{ padding: '20px', textAlign: 'center', color: '#38bdf8', fontSize: '12px' }}>
               ⏳ Loading profile data from /api/instrument/...
             </div>
-          ) : selectedProfile ? (
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                <div>
-                  <h3 style={{ margin: 0, fontSize: '13px', fontWeight: 700, letterSpacing: '0.03em', textTransform: 'uppercase', color: '#f3f4f6' }}>
-                    {selectedProfile.instrument_type.toUpperCase()} • {selectedProfile.instrument_id}
-                  </h3>
-                  <div style={{ fontSize: '10.5px', color: '#9ca3af', marginTop: 2 }}>
-                    {selectedProfile.time.substring(0, 10)} | {selectedProfile.lat.toFixed(4)}°N, {selectedProfile.lon.toFixed(4)}°E
+          ) : selectedProfile ? (() => {
+            const hasModelData = selectedProfile.data.some((d) => d.temperature_model != null || d.salinity_model != null);
+            return (
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: '13px', fontWeight: 700, letterSpacing: '0.03em', textTransform: 'uppercase', color: '#f3f4f6' }}>
+                      {selectedProfile.instrument_type.toUpperCase()} • {selectedProfile.instrument_id}
+                    </h3>
+                    <div style={{ fontSize: '10.5px', color: '#9ca3af', marginTop: 2 }}>
+                      {selectedProfile.time.substring(0, 10)} | {selectedProfile.lat.toFixed(4)}°N, {selectedProfile.lon.toFixed(4)}°E
+                    </div>
                   </div>
+                  <button
+                    id="profile-close-btn"
+                    type="button"
+                    onClick={() => setSelectedProfile(null)}
+                    style={{
+                      background: 'transparent',
+                      border: 'none',
+                      color: '#9ca3af',
+                      fontSize: '14px',
+                      cursor: 'pointer',
+                      padding: '2px 4px',
+                      lineHeight: 1,
+                    }}
+                    title="Close Profile Popup"
+                  >
+                    ✕
+                  </button>
                 </div>
-                <button
-                  id="profile-close-btn"
-                  type="button"
-                  onClick={() => setSelectedProfile(null)}
+
+                {/* Stage Differentiators Task A4: Model vs Observation MAE Banner */}
+                {hasModelData && selectedProfile.model_temperature_mae != null && (
+                  <div
+                    id="profile-model-mae-banner"
+                    style={{
+                      marginBottom: 8,
+                      padding: '6px 10px',
+                      background: 'rgba(56, 189, 248, 0.08)',
+                      border: '1px solid rgba(56, 189, 248, 0.25)',
+                      borderRadius: '5px',
+                      fontSize: '11px',
+                      color: '#e0f2fe',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: 6,
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span style={{ fontSize: '13px' }}>🎯</span>
+                      <span>
+                        <strong>Model vs. Observation:</strong> avg <strong>{selectedProfile.model_temperature_mae.toFixed(2)}°C</strong> difference at this location
+                      </span>
+                    </div>
+                    {selectedProfile.model_salinity_mae != null && (
+                      <span style={{ color: '#94a3b8', fontSize: '10px' }}>
+                        (Salinity MAE: {selectedProfile.model_salinity_mae.toFixed(3)} PSU)
+                      </span>
+                    )}
+                  </div>
+                )}
+
+                {/* Task 4 & Task A4: Clean horizontal legend row distinguishing Observed (solid) vs Model (dashed) */}
+                <div
                   style={{
-                    background: 'transparent',
-                    border: 'none',
-                    color: '#9ca3af',
-                    fontSize: '14px',
-                    cursor: 'pointer',
-                    padding: '2px 4px',
-                    lineHeight: 1,
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    gap: '6px 10px',
+                    alignItems: 'center',
+                    marginBottom: 8,
+                    fontSize: '10.5px',
+                    padding: '6px 10px',
+                    background: '#242426',
+                    borderRadius: '5px',
+                    border: '1px solid rgba(255, 255, 255, 0.06)',
                   }}
-                  title="Close Profile Popup"
                 >
-                  ✕
-                </button>
-              </div>
-
-              {/* Task 4: Clean horizontal legend row above the chart */}
-              <div
-                style={{
-                  display: 'flex',
-                  flexWrap: 'wrap',
-                  gap: '6px 14px',
-                  alignItems: 'center',
-                  marginBottom: 8,
-                  fontSize: '10.5px',
-                  padding: '6px 10px',
-                  background: '#242426',
-                  borderRadius: '5px',
-                  border: '1px solid rgba(255, 255, 255, 0.06)',
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                  <span style={{ width: 10, height: 3, background: '#f87171', borderRadius: 1 }} />
-                  <span style={{ color: '#f87171', fontWeight: 600 }}>Temp (°C)</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                    <span style={{ width: 10, height: 3, background: '#f87171', borderRadius: 1 }} />
+                    <span style={{ color: '#f87171', fontWeight: 600 }}>Temp (Obs)</span>
+                  </div>
+                  {hasModelData && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                      <span style={{ width: 12, height: 0, borderTop: '2px dashed #fca5a5' }} />
+                      <span style={{ color: '#fca5a5', fontWeight: 500 }}>Temp (Model)</span>
+                    </div>
+                  )}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                    <span style={{ width: 10, height: 3, background: '#38bdf8', borderRadius: 1 }} />
+                    <span style={{ color: '#38bdf8', fontWeight: 600 }}>Salinity (Obs)</span>
+                  </div>
+                  {hasModelData && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                      <span style={{ width: 12, height: 0, borderTop: '2px dashed #7dd3fc' }} />
+                      <span style={{ color: '#7dd3fc', fontWeight: 500 }}>Salinity (Model)</span>
+                    </div>
+                  )}
+                  {selectedProfile.data.some((d) => d.chlorophyll !== undefined) && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                      <span style={{ width: 10, height: 3, background: '#4ade80', borderRadius: 1 }} />
+                      <span style={{ color: '#4ade80', fontWeight: 600 }}>Chl-a</span>
+                    </div>
+                  )}
+                  {selectedProfile.data.some((d) => d.current_u !== undefined) && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                      <span style={{ width: 10, height: 3, background: '#fb923c', borderRadius: 1 }} />
+                      <span style={{ color: '#fb923c', fontWeight: 600 }}>Current U</span>
+                    </div>
+                  )}
+                  {selectedProfile.data.some((d) => d.current_v !== undefined) && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                      <span style={{ width: 10, height: 3, background: '#c084fc', borderRadius: 1 }} />
+                      <span style={{ color: '#c084fc', fontWeight: 600 }}>Current V</span>
+                    </div>
+                  )}
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                  <span style={{ width: 10, height: 3, background: '#38bdf8', borderRadius: 1 }} />
-                  <span style={{ color: '#38bdf8', fontWeight: 600 }}>Salinity (PSU)</span>
-                </div>
-                {selectedProfile.data.some((d) => d.chlorophyll !== undefined) && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                    <span style={{ width: 10, height: 3, background: '#4ade80', borderRadius: 1 }} />
-                    <span style={{ color: '#4ade80', fontWeight: 600 }}>Chl-a (mg/m³)</span>
-                  </div>
-                )}
-                {selectedProfile.data.some((d) => d.current_u !== undefined) && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                    <span style={{ width: 10, height: 3, background: '#fb923c', borderRadius: 1 }} />
-                    <span style={{ color: '#fb923c', fontWeight: 600 }}>Current U (m/s)</span>
-                  </div>
-                )}
-                {selectedProfile.data.some((d) => d.current_v !== undefined) && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                    <span style={{ width: 10, height: 3, background: '#c084fc', borderRadius: 1 }} />
-                    <span style={{ color: '#c084fc', fontWeight: 600 }}>Current V (m/s)</span>
-                  </div>
-                )}
-              </div>
 
-              <Plot
-                data={[
-                  {
-                    x: selectedProfile.data.filter((d) => d.temperature !== undefined).map((d) => d.temperature!),
-                    y: selectedProfile.data.filter((d) => d.temperature !== undefined).map((d) => d.depth),
-                    type: 'scatter',
-                    mode: 'lines+markers',
-                    name: 'Temp (°C)',
-                    line: { color: '#f87171', width: 2 },
-                    marker: { size: 5, color: '#f87171' },
-                  },
-                  {
-                    x: selectedProfile.data.filter((d) => d.salinity !== undefined).map((d) => d.salinity!),
-                    y: selectedProfile.data.filter((d) => d.salinity !== undefined).map((d) => d.depth),
-                    type: 'scatter',
-                    mode: 'lines+markers',
-                    name: 'Salinity (PSU)',
-                    line: { color: '#38bdf8', width: 2 },
-                    marker: { size: 5, color: '#38bdf8' },
-                    xaxis: 'x2',
-                  },
-                  {
-                    x: selectedProfile.data.filter((d) => d.chlorophyll !== undefined).map((d) => d.chlorophyll!),
-                    y: selectedProfile.data.filter((d) => d.chlorophyll !== undefined).map((d) => d.depth),
-                    type: 'scatter',
-                    mode: 'lines+markers',
-                    name: 'Chl-a (mg/m³)',
-                    line: { color: '#4ade80', width: 2 },
-                    marker: { size: 5, color: '#4ade80' },
-                    xaxis: 'x3',
-                  },
-                  {
-                    x: selectedProfile.data.filter((d) => d.current_u !== undefined).map((d) => d.current_u!),
-                    y: selectedProfile.data.filter((d) => d.current_u !== undefined).map((d) => d.depth),
-                    type: 'scatter',
-                    mode: 'lines+markers',
-                    name: 'Current U (m/s)',
-                    line: { color: '#fb923c', width: 2 },
-                    marker: { size: 5, color: '#fb923c' },
-                  },
-                  {
-                    x: selectedProfile.data.filter((d) => d.current_v !== undefined).map((d) => d.current_v!),
-                    y: selectedProfile.data.filter((d) => d.current_v !== undefined).map((d) => d.depth),
-                    type: 'scatter',
-                    mode: 'lines+markers',
-                    name: 'Current V (m/s)',
-                    line: { color: '#c084fc', width: 2 },
-                    marker: { size: 5, color: '#c084fc' },
-                  },
-                ].filter((trace) => trace.x.length > 0)}
-                layout={{
-                  width: 360,
-                  height: 350,
-                  margin: { l: 55, r: 25, t: 35, b: 35 },
-                  paper_bgcolor: 'rgba(0, 0, 0, 0)',
-                  plot_bgcolor: 'rgba(24, 24, 27, 0.7)',
-                  font: { color: '#cbd5e1', family: 'Inter, system-ui, sans-serif', size: 10 },
-                  yaxis: {
-                    title: { text: 'Depth', font: { color: '#9ca3af', size: 10.5 } },
-                    autorange: 'reversed',
-                    color: '#9ca3af',
-                    ticksuffix: ' m',
-                    tickfont: { color: '#9ca3af', size: 9 },
-                    showgrid: true,
-                    gridcolor: 'rgba(255, 255, 255, 0.08)',
-                    griddash: 'dash',
-                    zeroline: false,
-                  },
-                  xaxis: {
-                    title: { text: 'Temp (°C)', font: { color: '#f87171', size: 10 } },
-                    side: 'bottom',
-                    color: '#f87171',
-                    tickfont: { color: '#f87171', size: 9 },
-                    tickcolor: '#f87171',
-                    showgrid: false,
-                  },
-                  xaxis2: {
-                    title: { text: 'Salinity (PSU)', font: { color: '#38bdf8', size: 10 } },
-                    side: 'top',
-                    overlaying: 'x',
-                    color: '#38bdf8',
-                    tickfont: { color: '#38bdf8', size: 9 },
-                    tickcolor: '#38bdf8',
-                    showgrid: false,
-                  },
-                  xaxis3: {
-                    title: { text: 'Chl-a', font: { color: '#4ade80', size: 10 } },
-                    side: 'top',
-                    overlaying: 'x',
-                    color: '#4ade80',
-                    tickfont: { color: '#4ade80', size: 9 },
-                    tickcolor: '#4ade80',
-                    showgrid: false,
-                    position: 0.88,
-                  },
-                  showlegend: false,
-                }}
-                config={{ displayModeBar: false, responsive: true }}
-              />
-            </div>
-          ) : null}
+                <Plot
+                  data={[
+                    {
+                      x: selectedProfile.data.filter((d) => d.temperature !== undefined).map((d) => d.temperature!),
+                      y: selectedProfile.data.filter((d) => d.temperature !== undefined).map((d) => d.depth),
+                      type: 'scatter',
+                      mode: 'lines+markers',
+                      name: 'Temp (Observed)',
+                      line: { color: '#f87171', width: 2 },
+                      marker: { size: 4, color: '#f87171' },
+                    },
+                    ...(hasModelData
+                      ? [
+                          {
+                            x: selectedProfile.data.filter((d) => d.temperature_model != null).map((d) => d.temperature_model!),
+                            y: selectedProfile.data.filter((d) => d.temperature_model != null).map((d) => d.depth),
+                            type: 'scatter' as const,
+                            mode: 'lines' as const,
+                            name: 'Temp (Model GLORYS12)',
+                            line: { color: '#fca5a5', width: 2, dash: 'dash' as const },
+                          },
+                        ]
+                      : []),
+                    {
+                      x: selectedProfile.data.filter((d) => d.salinity !== undefined).map((d) => d.salinity!),
+                      y: selectedProfile.data.filter((d) => d.salinity !== undefined).map((d) => d.depth),
+                      type: 'scatter',
+                      mode: 'lines+markers',
+                      name: 'Salinity (Observed)',
+                      line: { color: '#38bdf8', width: 2 },
+                      marker: { size: 4, color: '#38bdf8' },
+                      xaxis: 'x2',
+                    },
+                    ...(hasModelData
+                      ? [
+                          {
+                            x: selectedProfile.data.filter((d) => d.salinity_model != null).map((d) => d.salinity_model!),
+                            y: selectedProfile.data.filter((d) => d.salinity_model != null).map((d) => d.depth),
+                            type: 'scatter' as const,
+                            mode: 'lines' as const,
+                            name: 'Salinity (Model GLORYS12)',
+                            line: { color: '#7dd3fc', width: 2, dash: 'dash' as const },
+                            xaxis: 'x2',
+                          },
+                        ]
+                      : []),
+                    {
+                      x: selectedProfile.data.filter((d) => d.chlorophyll !== undefined).map((d) => d.chlorophyll!),
+                      y: selectedProfile.data.filter((d) => d.chlorophyll !== undefined).map((d) => d.depth),
+                      type: 'scatter',
+                      mode: 'lines+markers',
+                      name: 'Chl-a (mg/m³)',
+                      line: { color: '#4ade80', width: 2 },
+                      marker: { size: 4, color: '#4ade80' },
+                      xaxis: 'x3',
+                    },
+                    {
+                      x: selectedProfile.data.filter((d) => d.current_u !== undefined).map((d) => d.current_u!),
+                      y: selectedProfile.data.filter((d) => d.current_u !== undefined).map((d) => d.depth),
+                      type: 'scatter',
+                      mode: 'lines+markers',
+                      name: 'Current U (m/s)',
+                      line: { color: '#fb923c', width: 2 },
+                      marker: { size: 4, color: '#fb923c' },
+                    },
+                    {
+                      x: selectedProfile.data.filter((d) => d.current_v !== undefined).map((d) => d.current_v!),
+                      y: selectedProfile.data.filter((d) => d.current_v !== undefined).map((d) => d.depth),
+                      type: 'scatter',
+                      mode: 'lines+markers',
+                      name: 'Current V (m/s)',
+                      line: { color: '#c084fc', width: 2 },
+                      marker: { size: 4, color: '#c084fc' },
+                    },
+                  ].filter((trace) => trace.x.length > 0)}
+                  layout={{
+                    width: 360,
+                    height: 350,
+                    margin: { l: 55, r: 25, t: 35, b: 35 },
+                    paper_bgcolor: 'rgba(0, 0, 0, 0)',
+                    plot_bgcolor: 'rgba(24, 24, 27, 0.7)',
+                    font: { color: '#cbd5e1', family: 'Inter, system-ui, sans-serif', size: 10 },
+                    yaxis: {
+                      title: { text: 'Depth', font: { color: '#9ca3af', size: 10.5 } },
+                      autorange: 'reversed',
+                      color: '#9ca3af',
+                      ticksuffix: ' m',
+                      tickfont: { color: '#9ca3af', size: 9 },
+                      showgrid: true,
+                      gridcolor: 'rgba(255, 255, 255, 0.08)',
+                      griddash: 'dash',
+                      zeroline: false,
+                    },
+                    xaxis: {
+                      title: { text: 'Temp (°C)', font: { color: '#f87171', size: 10 } },
+                      side: 'bottom',
+                      color: '#f87171',
+                      tickfont: { color: '#f87171', size: 9 },
+                      tickcolor: '#f87171',
+                      showgrid: false,
+                    },
+                    xaxis2: {
+                      title: { text: 'Salinity (PSU)', font: { color: '#38bdf8', size: 10 } },
+                      side: 'top',
+                      overlaying: 'x',
+                      color: '#38bdf8',
+                      tickfont: { color: '#38bdf8', size: 9 },
+                      tickcolor: '#38bdf8',
+                      showgrid: false,
+                    },
+                    xaxis3: {
+                      title: { text: 'Chl-a', font: { color: '#4ade80', size: 10 } },
+                      side: 'top',
+                      overlaying: 'x',
+                      color: '#4ade80',
+                      tickfont: { color: '#4ade80', size: 9 },
+                      tickcolor: '#4ade80',
+                      showgrid: false,
+                      position: 0.88,
+                    },
+                    showlegend: false,
+                  }}
+                  config={{ displayModeBar: false, responsive: true }}
+                />
+              </div>
+            );
+          })() : null}
         </div>
       )}
 

@@ -128,14 +128,23 @@ GET /instruments?bbox=8,82,23,92&time_range=2020-05-13T00:00:00Z,2020-05-25T23:5
 ---
 
 ### (b) GET `/instrument/{instrument_id}/profile`
-Retrieves the vertical profiling data (depth series measurements) for a specific instrument.
+Retrieves the vertical profiling data (depth series measurements) for a specific instrument, alongside collocated model reanalysis data for direct validation comparison.
 
 - **Path Parameters:**
   - `instrument_id` (string, path parameter, e.g., `"2902086"`)
 - **Query Parameters:**
   - `time` (string, optional, retrieves profile at a specific timestamp. If omitted, returns latest profile)
 
-- **Response:** `application/json` (Ordered vertical profile sequence)
+- **Response:** `application/json` (Ordered vertical profile sequence with model validation)
+
+- **Model vs Observation Validation Fields:**
+  - `model_temperature_mae` (float | null): Mean Absolute Error (MAE, in °C) between observed and model temperature across all depths where both values exist. Excluded (`null`) for glider data due to time window mismatch.
+  - `model_salinity_mae` (float | null): Mean Absolute Error (MAE, in PSU) between observed and model salinity across all depths where both values exist. Excluded (`null`) for glider data.
+  - Per depth entry in `data`:
+    - `temperature_model` (float | null): Physical ocean model (GLORYS12V1 `amphan_bob_real.nc`) temperature interpolated to the instrument's exact coordinates, nearest model time slice, and interpolated to the instrument's **exact measured depths** (not model depth levels).
+    - `salinity_model` (float | null): GLORYS12V1 salinity interpolated to the instrument's exact measured depths.
+  - **Partial Availability**: If an instrument's measured depth falls beyond the model grid's vertical coverage at that specific location (e.g. surface layer < 0.494m or deep depths beyond the local seafloor bathymetry), `temperature_model` and `salinity_model` return `null` for just that specific depth item. Partial availability preserves all valid comparisons, and null depths are excluded from the MAE calculation.
+  - **Glider Exclusion**: BoBBLE 2016 glider data is sample/illustrative demonstration data from July 2016, whereas the model grid covers Cyclone Amphan (May 2020). For glider instruments, `temperature_model`, `salinity_model`, `model_temperature_mae`, and `model_salinity_mae` are explicitly returned as `null`.
 
 > Note: this response is intentionally **pivoted** (one row per depth, with `temperature`/`salinity`/`chlorophyll` as columns) for direct Plotly charting — this differs from the melted `variable`/`value` internal storage format in Section 1(a). This is a deliberate API-layer transformation, not a schema contradiction.
 
@@ -152,29 +161,39 @@ GET /instrument/2902086/profile?time=2020-05-18T06:30:00Z
   "lat": 14.25,
   "lon": 87.12,
   "time": "2020-05-18T06:30:00Z",
+  "model_temperature_mae": 0.230,
+  "model_salinity_mae": 0.037,
   "data": [
     {
       "depth": 1.5,
       "temperature": 29.8,
+      "temperature_model": 29.53,
       "salinity": 32.4,
+      "salinity_model": 32.95,
       "chlorophyll": 0.12
     },
     {
       "depth": 5.0,
       "temperature": 29.5,
+      "temperature_model": 29.49,
       "salinity": 32.5,
+      "salinity_model": 32.95,
       "chlorophyll": 0.15
     },
     {
       "depth": 10.0,
       "temperature": 28.9,
+      "temperature_model": 29.44,
       "salinity": 33.1,
+      "salinity_model": 33.02,
       "chlorophyll": 0.22
     },
     {
       "depth": 25.0,
       "temperature": 27.2,
+      "temperature_model": 27.85,
       "salinity": 33.8,
+      "salinity_model": 33.41,
       "chlorophyll": 0.05
     }
   ]
@@ -280,6 +299,11 @@ GET /plugins
     "name": "Glider Sample Loader",
     "type": "point",
     "status": "sample"
+  },
+  {
+    "name": "Copernicus Marine NRT Ingestor (Live Mode)",
+    "type": "grid",
+    "status": "stub"
   }
 ]
 ```

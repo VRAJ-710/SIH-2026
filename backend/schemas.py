@@ -23,6 +23,14 @@ class InstrumentProfile(BaseModel):
     lat: float
     lon: float
     time: str
+    model_temperature_mae: float | None = Field(
+        default=None,
+        description="Mean Absolute Error in °C between observed and model temperature across valid depths",
+    )
+    model_salinity_mae: float | None = Field(
+        default=None,
+        description="Mean Absolute Error in PSU between observed and model salinity across valid depths",
+    )
     data: list[dict[str, Any]]
 
 
