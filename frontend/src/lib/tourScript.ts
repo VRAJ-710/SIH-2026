@@ -99,7 +99,7 @@ export const TOUR_BEATS: TourBeat[] = [
     scienceNote:
       'Scientific Context: Cyclonic wind stress causes strong Ekman divergence and shear-induced vertical mixing, drawing thermocline water upward. This linear cold wake is clearly visible in the satellite-assimilated reanalysis.',
     callToAction: {
-      label: '🌊 Drill into 3D Volumetric View',
+      label: 'Drill into 3D Volumetric View',
       action: 'open_3d',
     },
   },
@@ -122,7 +122,7 @@ export const TOUR_BEATS: TourBeat[] = [
     scienceNote:
       'Data vs Science Distinction: The general concept of post-cyclone biological blooms is well-established marine science, but this demo platform does NOT claim to show a gridded surface bloom (no gridded chlorophyll exists in this reanalysis layer). Instead, click highlighted BGC-Argo float #2902264 on the map to inspect its real, measured chlorophyll depth profile taken on May 24.',
     callToAction: {
-      label: '📊 View Float #2902264 Chlorophyll Profile',
+      label: 'View Float #2902264 Chlorophyll Profile',
       action: 'open_profile',
     },
   },

@@ -937,7 +937,7 @@ export default function App() {
                     border: '1px solid rgba(255, 255, 255, 0.1)',
                   }}
                 >
-                  {basemapStatus === 'ion' ? '🛰️ Ion Basemap' : '🌍 Offline Basemap (NaturalEarthII)'}
+                  {basemapStatus === 'ion' ? 'Ion Basemap' : 'Offline Basemap (NaturalEarthII)'}
                 </span>
               </div>
             </div>
@@ -989,7 +989,7 @@ export default function App() {
               transition: 'all 0.15s ease',
             }}
           >
-            🔬 Forecaster Mode
+            Forecaster Mode
           </button>
           <button
             id="mode-public-btn"
@@ -1009,7 +1009,7 @@ export default function App() {
               transition: 'all 0.15s ease',
             }}
           >
-            🌐 Public Tour Mode
+            Public Tour Mode
           </button>
         </div>
 
@@ -1037,7 +1037,7 @@ export default function App() {
                 transition: 'all 0.15s ease',
               }}
             >
-              <span>▶ Launch Guided Tour (Story Beats)</span>
+              <span>Launch Guided Tour (Story Beats)</span>
             </button>
           </div>
         )}
@@ -1060,7 +1060,7 @@ export default function App() {
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <span style={{ fontSize: '11px', fontWeight: 600, color: '#9ca3af', letterSpacing: '0.02em' }}>
-                  📡 LIVE OCEAN DATA
+                  LIVE OCEAN DATA
                 </span>
                 <span
                   style={{
@@ -1129,7 +1129,7 @@ export default function App() {
             }}
           >
             <div style={{ fontWeight: 600, fontSize: '12px', color: '#f3f4f6', marginBottom: 4 }}>
-              🎓 Public Outreach Story Tour
+              Public Outreach Story Tour
             </div>
             <div style={{ fontSize: '11px', color: '#9ca3af', lineHeight: 1.45, marginBottom: 10 }}>
               Explore Super Cyclone Amphan across 5 story beats: pre-storm warm pool, Category 5 peak, Sundarbans landfall, cold wake upwelling, and biological aftermath.
@@ -1152,14 +1152,14 @@ export default function App() {
                 transition: 'all 0.15s ease',
               }}
             >
-              🌟 Start Guided Story Tour
+              Start Guided Story Tour
             </button>
           </div>
         )}
 
         {loadingCapabilities ? (
           <div style={{ padding: '12px 0', color: '#9ca3af', fontSize: '12px' }}>
-            ⏳ Loading available depth levels & time steps from TDS...
+            Loading available depth levels & time steps from TDS...
           </div>
         ) : (
           <>
@@ -1183,23 +1183,22 @@ export default function App() {
                       type="button"
                       onClick={() => handleVariableChange(v)}
                       style={{
-                        padding: '7px 8px',
+                        padding: '6px 8px',
                         fontSize: '11px',
                         fontWeight: isSelected ? 600 : 400,
                         cursor: 'pointer',
-                        background: isSelected ? '#0284c7' : 'transparent',
-                        color: isSelected ? '#ffffff' : '#9ca3af',
-                        border: isSelected ? '1px solid #38bdf8' : '1px solid rgba(255, 255, 255, 0.1)',
                         borderRadius: '5px',
-                        textAlign: 'center',
+                        border: isSelected ? '1px solid #38bdf8' : '1px solid rgba(255, 255, 255, 0.12)',
+                        background: isSelected ? '#0284c7' : 'transparent',
+                        color: isSelected ? '#ffffff' : '#d1d5db',
                         boxShadow: isSelected ? '0 2px 8px rgba(2, 132, 199, 0.35)' : 'none',
                         transition: 'all 0.15s ease',
                       }}
                     >
-                      {v === 'temperature' && (uiMode === 'public' ? '🌡️ Sea Surface Temp' : '🌡️ Temperature')}
-                      {v === 'salinity' && (uiMode === 'public' ? '🧂 Ocean Salinity' : '🧂 Salinity')}
-                      {v === 'current_u' && (uiMode === 'public' ? '➡️ East-West Currents' : '➡️ Current U (East)')}
-                      {v === 'current_v' && (uiMode === 'public' ? '⬆️ North-South Currents' : '⬆️ Current V (North)')}
+                      {v === 'temperature' && (uiMode === 'public' ? 'Sea Surface Temp' : 'Temperature')}
+                      {v === 'salinity' && (uiMode === 'public' ? 'Ocean Salinity' : 'Salinity')}
+                      {v === 'current_u' && (uiMode === 'public' ? 'East-West Currents' : 'Current U (East)')}
+                      {v === 'current_v' && (uiMode === 'public' ? 'North-South Currents' : 'Current V (North)')}
                     </button>
                   );
                 })}
@@ -1333,7 +1332,7 @@ export default function App() {
                     transition: 'all 0.15s ease',
                   }}
                 >
-                  {isPlaying ? '⏸ Pause Animation' : '▶ Play Animation'}
+                  {isPlaying ? 'Pause Animation' : 'Play Animation'}
                 </button>
                 <button
                   id="prev-time-btn"
@@ -1352,7 +1351,7 @@ export default function App() {
                   }}
                   title="Previous Day"
                 >
-                  ⏮ Prev
+                  Prev
                 </button>
                 <button
                   id="next-time-btn"
@@ -1371,7 +1370,7 @@ export default function App() {
                   }}
                   title="Next Day"
                 >
-                  Next ⏭
+                  Next
                 </button>
               </div>
             </div>
@@ -1634,7 +1633,7 @@ export default function App() {
                   transition: 'all 0.15s ease',
                 }}
               >
-                {show3DOverlay ? '✕ Close 3D Volumetric View' : '🌊 Drill into 3D Volumetric View'}
+                {show3DOverlay ? '✕ Close 3D Volumetric View' : 'Drill into 3D Volumetric View'}
               </button>
             </div>
           </>
@@ -1667,7 +1666,7 @@ export default function App() {
         >
           {loadingProfile ? (
             <div style={{ padding: '20px', textAlign: 'center', color: '#38bdf8', fontSize: '12px' }}>
-              ⏳ Loading profile data from /api/instrument/...
+              Loading profile data from /api/instrument/...
             </div>
           ) : selectedProfile ? (() => {
             const hasModelData = selectedProfile.data.some((d) => d.temperature_model != null || d.salinity_model != null);
@@ -1719,11 +1718,8 @@ export default function App() {
                       gap: 6,
                     }}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <span style={{ fontSize: '13px' }}>🎯</span>
-                      <span>
-                        <strong>Model vs. Observation:</strong> avg <strong>{selectedProfile.model_temperature_mae.toFixed(2)}°C</strong> difference at this location
-                      </span>
+                    <div>
+                      <strong>Model vs. Observation:</strong> avg <strong>{selectedProfile.model_temperature_mae.toFixed(2)}°C</strong> difference at this location
                     </div>
                     {selectedProfile.model_salinity_mae != null && (
                       <span style={{ color: '#94a3b8', fontSize: '10px' }}>

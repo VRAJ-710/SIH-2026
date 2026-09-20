@@ -525,12 +525,12 @@ export default function VolumetricOverlay({ currentTime, onClose }: VolumetricOv
 
         {loading && (
           <div style={{ marginTop: 8, fontSize: 11, color: '#38bdf8' }}>
-            ⏳ Fetching 3D volume from /api/volume...
+            Fetching 3D volume from /api/volume...
           </div>
         )}
         {error && (
           <div style={{ marginTop: 8, fontSize: 11, color: '#f87171' }}>
-            ❌ {error}
+            {error}
           </div>
         )}
       </div>

@@ -224,7 +224,7 @@ export const GuidedTourPanel: React.FC<GuidedTourPanelProps> = ({
             transition: 'all 0.15s ease',
           }}
         >
-          ⏮ Previous
+          Previous
         </button>
 
         <button
@@ -245,7 +245,7 @@ export const GuidedTourPanel: React.FC<GuidedTourPanelProps> = ({
             transition: 'all 0.15s ease',
           }}
         >
-          {isPlaying ? '⏸ Pause Tour' : '▶ Auto-Play Tour'}
+          {isPlaying ? 'Pause Tour' : 'Auto-Play Tour'}
         </button>
 
         <button
@@ -267,7 +267,7 @@ export const GuidedTourPanel: React.FC<GuidedTourPanelProps> = ({
             transition: 'all 0.15s ease',
           }}
         >
-          Next ⏭
+          Next
         </button>
       </div>
 

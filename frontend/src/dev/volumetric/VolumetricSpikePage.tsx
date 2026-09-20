@@ -197,7 +197,7 @@ export default function VolumetricSpikePage() {
     };
 
     // 9. lil-gui setup
-    const gui = new GUI({ title: '🌊 Volumetric Spike Controls' });
+    const gui = new GUI({ title: 'Volumetric Spike Controls' });
     gui.domElement.style.position = 'absolute';
     gui.domElement.style.top = '20px';
     gui.domElement.style.right = '20px';
