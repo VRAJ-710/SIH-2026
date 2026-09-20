@@ -104,6 +104,24 @@ const AVAILABLE_PALETTES = [
   { id: 'default', label: 'Default' },
 ];
 
+/** Timeout helper for external network requests (Cesium Ion imagery & bathymetry). */
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number, errorMsg: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(new Error(errorMsg));
+    }, timeoutMs);
+    promise
+      .then((val) => {
+        clearTimeout(timer);
+        resolve(val);
+      })
+      .catch((err) => {
+        clearTimeout(timer);
+        reject(err);
+      });
+  });
+}
+
 export default function App() {
   const containerRef = useRef<HTMLDivElement>(null);
   const viewerRef = useRef<Cesium.Viewer | null>(null);
@@ -146,8 +164,11 @@ export default function App() {
   const [tourPlaying, setTourPlaying] = useState<boolean>(false);
   const [isCameraFlying, setIsCameraFlying] = useState<boolean>(false);
   const [dwellRemainingSec, setDwellRemainingSec] = useState<number>(7);
+  const [basemapStatus, setBasemapStatus] = useState<'ion' | 'offline'>(
+    typeof navigator !== 'undefined' && !navigator.onLine ? 'offline' : 'ion'
+  );
 
-  // Initialize Cesium Viewer (Stage 7b Visual Polish Pass)
+  // Initialize Cesium Viewer with Automatic Offline / Timeout Resilience (Stage 10)
   useEffect(() => {
     if (!containerRef.current) return;
 
@@ -157,18 +178,47 @@ export default function App() {
       Cesium.Ion.defaultAccessToken = ionToken;
     }
 
-    // Task 1: Replace NaturalEarthII offline imagery with Cesium World Imagery
-    const imageryPromise = Cesium.createWorldImageryAsync({
-      style: Cesium.IonWorldImageryStyle.AERIAL_WITH_LABELS,
-    }).catch((err) => {
-      console.warn('[Cesium] createWorldImageryAsync fallback to NaturalEarthII:', err);
-      return Cesium.TileMapServiceImageryProvider.fromUrl(
+    const TIMEOUT_MS = 6000;
+    const isInitiallyOffline = typeof navigator !== 'undefined' && !navigator.onLine;
+    let currentBasemap = isInitiallyOffline ? 'offline' : 'ion';
+
+    const getOfflineImageryProvider = () =>
+      Cesium.TileMapServiceImageryProvider.fromUrl(
         Cesium.buildModuleUrl('Assets/Textures/NaturalEarthII'),
       );
-    });
+
+    // Task 2: Attempt Cesium World Imagery with 6-second timeout; fall back gracefully to NaturalEarthII
+    const imageryPromise = (async () => {
+      if (isInitiallyOffline) {
+        console.log('[Cesium] Browser is offline. Loading NaturalEarthII offline basemap immediately.');
+        setBasemapStatus('offline');
+        return getOfflineImageryProvider();
+      }
+
+      try {
+        console.log(`[Cesium] Requesting Cesium World Imagery (${TIMEOUT_MS}ms timeout)...`);
+        const provider = await withTimeout(
+          Cesium.createWorldImageryAsync({
+            style: Cesium.IonWorldImageryStyle.AERIAL_WITH_LABELS,
+          }),
+          TIMEOUT_MS,
+          'Cesium World Imagery request timed out after 6s',
+        );
+        setBasemapStatus('ion');
+        return provider;
+      } catch (err: any) {
+        console.warn(
+          '[Cesium] createWorldImageryAsync failed or timed out; falling back to NaturalEarthII:',
+          err?.message || err,
+        );
+        setBasemapStatus('offline');
+        return getOfflineImageryProvider();
+      }
+    })();
 
     const viewer = new Cesium.Viewer(containerRef.current, {
       baseLayer: Cesium.ImageryLayer.fromProviderAsync(imageryPromise),
+      terrainProvider: new Cesium.EllipsoidTerrainProvider(),
       baseLayerPicker: false,
       geocoder: false,
       homeButton: false,
@@ -180,16 +230,30 @@ export default function App() {
       fullscreenButton: false,
     });
 
-    // Task 1: Replace EllipsoidTerrainProvider with Cesium World Bathymetry (Asset 2426648)
-    // enabling requestVertexNormals: true so seafloor has real depth data and responds to vertical exaggeration
+    // Task 2: Attempt World Bathymetry / Terrain with 6-second timeout; fall back to EllipsoidTerrainProvider
     (async () => {
+      if (isInitiallyOffline) {
+        console.log('[Cesium] Browser is offline. Using EllipsoidTerrainProvider (offline).');
+        return;
+      }
+
       try {
-        console.log('[Cesium] Requesting Cesium World Bathymetry (Asset 2426648) with vertex normals...');
-        const bathyProvider = await Cesium.createWorldBathymetryAsync({
-          requestVertexNormals: true,
-        });
+        console.log(`[Cesium] Requesting Cesium World Bathymetry (Asset 2426648, ${TIMEOUT_MS}ms timeout)...`);
+        const bathyProvider = await withTimeout(
+          Cesium.createWorldBathymetryAsync({
+            requestVertexNormals: true,
+          }),
+          TIMEOUT_MS,
+          'Cesium World Bathymetry request timed out after 6s',
+        );
         if (!viewer.isDestroyed()) {
           viewer.scene.terrainProvider = bathyProvider;
+          bathyProvider.errorEvent.addEventListener((err) => {
+            console.warn('[Cesium] World Bathymetry runtime tile error; falling back to EllipsoidTerrainProvider:', err);
+            if (!viewer.isDestroyed()) {
+              viewer.scene.terrainProvider = new Cesium.EllipsoidTerrainProvider();
+            }
+          });
           console.log('[Cesium] Cesium World Bathymetry successfully loaded on globe.');
         }
       } catch (bathyErr: any) {
@@ -199,18 +263,79 @@ export default function App() {
           '— falling back to Cesium World Terrain (Asset 1)...',
         );
         try {
-          const worldTerrainProvider = await Cesium.createWorldTerrainAsync({
-            requestVertexNormals: true,
-          });
+          const worldTerrainProvider = await withTimeout(
+            Cesium.createWorldTerrainAsync({
+              requestVertexNormals: true,
+            }),
+            TIMEOUT_MS,
+            'Cesium World Terrain request timed out after 6s',
+          );
           if (!viewer.isDestroyed()) {
             viewer.scene.terrainProvider = worldTerrainProvider;
+            worldTerrainProvider.errorEvent.addEventListener((err) => {
+              console.warn('[Cesium] World Terrain runtime tile error; falling back to EllipsoidTerrainProvider:', err);
+              if (!viewer.isDestroyed()) {
+                viewer.scene.terrainProvider = new Cesium.EllipsoidTerrainProvider();
+              }
+            });
             console.log('[Cesium] Cesium World Terrain active on globe.');
           }
         } catch (terrainErr: any) {
-          console.error('[Cesium] Failed to load Cesium World Terrain:', terrainErr?.message || terrainErr);
+          console.warn(
+            '[Cesium] Failed to load Cesium World Terrain:',
+            terrainErr?.message || terrainErr,
+            '— falling back to EllipsoidTerrainProvider (offline).',
+          );
+          if (!viewer.isDestroyed()) {
+            viewer.scene.terrainProvider = new Cesium.EllipsoidTerrainProvider();
+            console.log('[Cesium] EllipsoidTerrainProvider active on globe.');
+          }
         }
       }
     })();
+
+    // Continuous runtime monitoring for tile failures on online imagery
+    let failedTileCount = 0;
+    const switchToOfflineBasemap = async () => {
+      if (currentBasemap === 'offline' || viewer.isDestroyed()) return;
+      currentBasemap = 'offline';
+      setBasemapStatus('offline');
+      console.warn('[Cesium] Online imagery tile failures detected. Recovering to NaturalEarthII basemap.');
+      try {
+        const offlineProvider = await getOfflineImageryProvider();
+        if (viewer.isDestroyed()) return;
+        if (viewer.imageryLayers.length > 0) {
+          const currentBase = viewer.imageryLayers.get(0);
+          viewer.imageryLayers.remove(currentBase, true);
+        }
+        const newBase = viewer.imageryLayers.addImageryProvider(offlineProvider, 0);
+        newBase.alpha = 1.0;
+        console.log('[Cesium] Recovered successfully to NaturalEarthII offline basemap.');
+      } catch (fallbackErr) {
+        console.error('[Cesium] Failed to switch to NaturalEarthII:', fallbackErr);
+      }
+    };
+
+    viewer.imageryLayers.layerAdded.addEventListener((layer: Cesium.ImageryLayer) => {
+      if (layer !== layerRef.current) {
+        layer.errorEvent.addEventListener((tileError: any) => {
+          failedTileCount++;
+          console.warn(`[Cesium] Base imagery tile error (#${failedTileCount}):`, tileError);
+          if (failedTileCount >= 4 && currentBasemap === 'ion') {
+            switchToOfflineBasemap();
+          }
+        });
+      }
+    });
+
+    const handleOfflineEvent = () => {
+      console.warn('[Cesium] Window offline event detected. Triggering offline fallback.');
+      switchToOfflineBasemap();
+      if (!viewer.isDestroyed()) {
+        viewer.scene.terrainProvider = new Cesium.EllipsoidTerrainProvider();
+      }
+    };
+    window.addEventListener('offline', handleOfflineEvent);
 
     // Task 2: Dynamic sun-based shading, atmosphere, and starfield skybox
     viewer.scene.globe.enableLighting = true;
@@ -265,6 +390,7 @@ export default function App() {
 
     return () => {
       setViewerReady(false);
+      window.removeEventListener('offline', handleOfflineEvent);
       delete (window as any).cesiumViewer;
       handler.destroy();
       layerRef.current = null;
@@ -719,8 +845,22 @@ export default function App() {
               <div style={{ fontWeight: 700, fontSize: '13px', letterSpacing: '0.04em', textTransform: 'uppercase', color: '#f8fafc' }}>
                 Cyclone Amphan: GLORYS12
               </div>
-              <div style={{ fontSize: '10px', color: '#94a3b8', letterSpacing: '0.02em' }}>
-                Bay of Bengal (8–23°N, 82–92°E) • Live ncWMS
+              <div style={{ fontSize: '10px', color: '#94a3b8', letterSpacing: '0.02em', display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
+                <span>Bay of Bengal (8–23°N, 82–92°E) • Live ncWMS</span>
+                <span
+                  id="basemap-status-badge"
+                  style={{
+                    padding: '1px 5px',
+                    borderRadius: '4px',
+                    fontSize: '9.5px',
+                    fontWeight: 600,
+                    background: basemapStatus === 'ion' ? 'rgba(56, 189, 248, 0.15)' : 'rgba(245, 158, 11, 0.2)',
+                    color: basemapStatus === 'ion' ? '#38bdf8' : '#f59e0b',
+                    border: basemapStatus === 'ion' ? '1px solid rgba(56, 189, 248, 0.3)' : '1px solid rgba(245, 158, 11, 0.4)',
+                  }}
+                >
+                  {basemapStatus === 'ion' ? '🛰️ Ion Basemap' : '🌍 Offline Basemap (NaturalEarthII)'}
+                </span>
               </div>
             </div>
           </div>
@@ -1202,7 +1342,7 @@ export default function App() {
                   <img
                     id="wms-legend-img"
                     key={`${activeVariable}-${palette}-${effectiveMin}-${effectiveMax}-${activeLogScale}`}
-                    src={`/thredds/wms/amphan_bob_real/${activeVariable}?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetLegendGraphic&LAYER=${activeVariable}&STYLES=${palette === 'default' ? '' : `default-scalar/${palette}`}&COLORSCALERANGE=${effectiveMin},${effectiveMax}&WIDTH=280&HEIGHT=14${activeLogScale ? '&LOGSCALE=true' : ''}`}
+                    src={`/thredds/wms/amphan_bob_real/${activeVariable}?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetLegendGraphic&LAYERS=${activeVariable}&STYLES=${palette === 'default' ? '' : `default-scalar/${palette}`}&COLORSCALERANGE=${effectiveMin},${effectiveMax}${activeLogScale ? '&LOGSCALE=true' : ''}`}
                     alt="WMS Colorbar Legend"
                     style={{ width: '100%', height: '16px', display: 'block', borderRadius: '4px', border: '1px solid rgba(100, 116, 139, 0.3)' }}
                     onError={(e) => {
@@ -1351,6 +1491,7 @@ export default function App() {
                   </div>
                 </div>
                 <button
+                  id="profile-close-btn"
                   type="button"
                   onClick={() => setSelectedProfile(null)}
                   style={{
