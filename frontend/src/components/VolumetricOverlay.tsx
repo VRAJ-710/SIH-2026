@@ -356,13 +356,13 @@ export default function VolumetricOverlay({ currentTime, onClose }: VolumetricOv
         width: '100vw',
         height: '100vh',
         zIndex: 20000,
-        background: '#0a0f1d',
+        background: '#121214',
       }}
     >
       {/* Three.js canvas */}
       <div ref={mountRef} style={{ width: '100%', height: '100%' }} />
 
-      {/* Close button */}
+      {/* Close button (Task 3: Subdued ghost button matching panel header) */}
       <button
         id="close-3d-btn"
         type="button"
@@ -372,60 +372,78 @@ export default function VolumetricOverlay({ currentTime, onClose }: VolumetricOv
           top: 16,
           right: 16,
           zIndex: 20010,
-          background: 'rgba(255,255,255,0.15)',
-          border: '1px solid rgba(255,255,255,0.3)',
-          borderRadius: 8,
-          color: '#fff',
-          fontSize: 20,
-          fontWeight: 700,
-          width: 44,
-          height: 44,
+          background: 'rgba(30, 30, 30, 0.88)',
+          border: '1px solid rgba(255, 255, 255, 0.12)',
+          borderRadius: 6,
+          color: '#9ca3af',
+          fontSize: 16,
+          fontWeight: 600,
+          width: 36,
+          height: 36,
           cursor: 'pointer',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          backdropFilter: 'blur(8px)',
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
+          transition: 'all 0.15s ease',
         }}
         title="Close 3D view (Esc)"
       >
         ✕
       </button>
 
-      {/* Top-Right Header info badge (leaves top-left free for main app's WMS panel) */}
+      {/* Top-Right Header info badge (Task 3: Frosted glassmorphic neutral dark card) */}
       <div
         id="volume-info-panel"
+        className="no-scrollbar"
         style={{
           position: 'absolute',
           top: 16,
-          right: 72,
+          right: 64,
           zIndex: 20010,
-          background: 'rgba(15, 23, 42, 0.92)',
-          backdropFilter: 'blur(12px)',
-          border: '1px solid rgba(56, 189, 248, 0.35)',
-          borderRadius: 12,
-          padding: '12px 16px',
-          color: '#fff',
-          width: '380px',
-          fontFamily: 'system-ui, sans-serif',
-          boxShadow: '0 8px 24px rgba(0, 0, 0, 0.4)',
+          background: 'rgba(30, 30, 30, 0.92)',
+          backdropFilter: 'blur(16px)',
+          WebkitBackdropFilter: 'blur(16px)',
+          border: '1px solid rgba(255, 255, 255, 0.08)',
+          borderRadius: 8,
+          padding: '14px 16px',
+          color: '#f3f4f6',
+          width: '340px',
+          maxWidth: 'calc(100vw - 88px)',
+          fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
+          boxShadow: '0 12px 32px rgba(0, 0, 0, 0.6)',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <span
               style={{
-                width: 8,
-                height: 8,
+                width: 7,
+                height: 7,
                 borderRadius: '50%',
-                background: loading ? '#facc15' : error ? '#ef4444' : '#34d399',
+                background: loading ? '#facc15' : error ? '#ef4444' : '#38bdf8',
                 display: 'inline-block',
               }}
             />
-            <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase' as const }}>
-              3D Volumetric View (Real Data)
+            <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase' as const, color: '#f3f4f6' }}>
+              3D Volumetric View
             </span>
           </div>
-          <span style={{ fontSize: 11, color: fps >= 50 ? '#34d399' : fps >= 30 ? '#facc15' : '#ef4444', fontWeight: 700, fontFamily: 'monospace' }}>
+          {/* FPS Counter: small status pill with subtle green background tint (Task 3) */}
+          <span
+            id="volumetric-fps"
+            style={{
+              fontSize: '10.5px',
+              color: fps >= 45 ? '#4ade80' : fps >= 25 ? '#facc15' : '#f87171',
+              fontWeight: 600,
+              fontFamily: 'monospace',
+              padding: '2px 8px',
+              borderRadius: '9999px',
+              background: 'rgba(34, 197, 94, 0.12)',
+              border: '1px solid rgba(74, 222, 128, 0.25)',
+            }}
+          >
             {fps} FPS
           </span>
         </div>
@@ -441,11 +459,11 @@ export default function VolumetricOverlay({ currentTime, onClose }: VolumetricOv
                 flex: 1,
                 padding: '4px 6px',
                 fontSize: '11px',
-                fontWeight: region === 'coldwake' ? 700 : 400,
-                borderRadius: 6,
-                border: region === 'coldwake' ? '1px solid #38bdf8' : '1px solid #334155',
-                background: region === 'coldwake' ? '#0369a1' : '#1e293b',
-                color: '#fff',
+                fontWeight: region === 'coldwake' ? 600 : 400,
+                borderRadius: 5,
+                border: region === 'coldwake' ? '1px solid #38bdf8' : '1px solid rgba(255, 255, 255, 0.12)',
+                background: region === 'coldwake' ? '#0284c7' : 'transparent',
+                color: region === 'coldwake' ? '#fff' : '#9ca3af',
                 cursor: 'pointer',
               }}
             >
@@ -459,11 +477,11 @@ export default function VolumetricOverlay({ currentTime, onClose }: VolumetricOv
                 flex: 1,
                 padding: '4px 6px',
                 fontSize: '11px',
-                fontWeight: region === 'coastline' ? 700 : 400,
-                borderRadius: 6,
-                border: region === 'coastline' ? '1px solid #38bdf8' : '1px solid #334155',
-                background: region === 'coastline' ? '#0369a1' : '#1e293b',
-                color: '#fff',
+                fontWeight: region === 'coastline' ? 600 : 400,
+                borderRadius: 5,
+                border: region === 'coastline' ? '1px solid #38bdf8' : '1px solid rgba(255, 255, 255, 0.12)',
+                background: region === 'coastline' ? '#0284c7' : 'transparent',
+                color: region === 'coastline' ? '#fff' : '#9ca3af',
                 cursor: 'pointer',
               }}
             >
@@ -472,36 +490,52 @@ export default function VolumetricOverlay({ currentTime, onClose }: VolumetricOv
           </div>
         )}
 
-        <div style={{ fontSize: 11, color: '#94a3b8', lineHeight: 1.5 }}>
-          <div><strong>Box:</strong> <span id="overlay-region-label">{REGION_BBOXES[region].label}</span></div>
-          <div><strong>Depth:</strong> {depthRange[0].toFixed(1)}–{depthRange[1].toFixed(1)} m | <strong>Grid:</strong> 32×32×16</div>
-          <div>
-            <strong>Date:</strong> <span id="overlay-date-label" style={{ color: '#38bdf8', fontWeight: 600 }}>{responseTime ? responseTime.substring(0, 10) : '...'}</span>
-            {' | '}
-            <strong>Range:</strong> {valueRange.min.toFixed(1)}–{valueRange.max.toFixed(1)}°C
-          </div>
-          <div>
-            <strong>Land Mask:</strong> {sentinelCount > 0 ? (
-              <span id="overlay-mask-status" style={{ color: '#38bdf8', fontWeight: 600 }}>{sentinelCount} sentinel cells transparent</span>
-            ) : (
-              <span id="overlay-mask-status" style={{ color: '#94a3b8' }}>100% Ocean (no land cells)</span>
-            )}
-          </div>
+        {/* Task 3: Clean 2-column key-value list (muted uppercase labels, bright values) */}
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'auto 1fr',
+            gap: '5px 12px',
+            alignItems: 'baseline',
+            marginTop: 6,
+            fontSize: '11px',
+            lineHeight: 1.4,
+          }}
+        >
+          <span style={{ fontSize: '10px', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 600 }}>Box</span>
+          <span id="overlay-region-label" style={{ color: '#f3f4f6', fontFamily: 'monospace' }}>{REGION_BBOXES[region].label}</span>
+
+          <span style={{ fontSize: '10px', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 600 }}>Depth</span>
+          <span style={{ color: '#f3f4f6', fontFamily: 'monospace' }}>{depthRange[0].toFixed(1)}–{depthRange[1].toFixed(1)} m</span>
+
+          <span style={{ fontSize: '10px', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 600 }}>Grid</span>
+          <span style={{ color: '#f3f4f6', fontFamily: 'monospace' }}>32 × 32 × 16</span>
+
+          <span style={{ fontSize: '10px', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 600 }}>Date</span>
+          <span id="overlay-date-label" style={{ color: '#38bdf8', fontWeight: 600, fontFamily: 'monospace' }}>{responseTime ? responseTime.substring(0, 10) : '...'}</span>
+
+          <span style={{ fontSize: '10px', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 600 }}>Range</span>
+          <span style={{ color: '#f3f4f6', fontFamily: 'monospace' }}>{valueRange.min.toFixed(1)}–{valueRange.max.toFixed(1)} °C</span>
+
+          <span style={{ fontSize: '10px', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 600 }}>Land Mask</span>
+          <span id="overlay-mask-status" style={{ color: sentinelCount > 0 ? '#38bdf8' : '#9ca3af' }}>
+            {sentinelCount > 0 ? `${sentinelCount} masked cells transparent` : '100% Ocean (no land)'}
+          </span>
         </div>
 
         {loading && (
-          <div style={{ marginTop: 6, fontSize: 11, color: '#facc15' }}>
+          <div style={{ marginTop: 8, fontSize: 11, color: '#38bdf8' }}>
             ⏳ Fetching 3D volume from /api/volume...
           </div>
         )}
         {error && (
-          <div style={{ marginTop: 6, fontSize: 11, color: '#ef4444' }}>
+          <div style={{ marginTop: 8, fontSize: 11, color: '#f87171' }}>
             ❌ {error}
           </div>
         )}
       </div>
 
-      {/* Bottom control dock */}
+      {/* Bottom control dock (Task 3: Repositioned & frosted neutral dark glassmorphism) */}
       <div
         id="volumetric-dock"
         style={{
@@ -510,27 +544,30 @@ export default function VolumetricOverlay({ currentTime, onClose }: VolumetricOv
           left: '50%',
           transform: 'translateX(-50%)',
           zIndex: 20010,
-          background: 'rgba(15, 23, 42, 0.94)',
+          background: 'rgba(30, 30, 30, 0.94)',
           backdropFilter: 'blur(16px)',
-          border: '1px solid rgba(56, 189, 248, 0.3)',
-          borderRadius: 16,
-          padding: '14px 22px',
-          color: '#fff',
+          WebkitBackdropFilter: 'blur(16px)',
+          border: '1px solid rgba(255, 255, 255, 0.08)',
+          borderRadius: 8,
+          padding: '12px 20px',
+          color: '#f3f4f6',
           display: 'flex',
           alignItems: 'center',
           gap: 20,
-          fontFamily: 'system-ui, sans-serif',
-          boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+          fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
+          boxShadow: '0 12px 32px rgba(0, 0, 0, 0.6)',
+          maxWidth: 'calc(100vw - 48px)',
         }}
       >
-        {/* Mode toggle */}
+        {/* Mode toggle: ghost style inactive, solid accent active (Task 3) */}
         <div
           style={{
             display: 'flex',
-            background: 'rgba(15, 23, 42, 0.8)',
+            gap: 4,
+            background: '#242426',
             padding: 3,
-            borderRadius: 10,
-            border: '1px solid rgba(100, 116, 139, 0.3)',
+            borderRadius: 6,
+            border: '1px solid rgba(255, 255, 255, 0.06)',
           }}
         >
           <button
@@ -539,15 +576,15 @@ export default function VolumetricOverlay({ currentTime, onClose }: VolumetricOv
             onClick={() => handleModeChange('raymarch')}
             style={{
               padding: '6px 14px',
-              fontSize: 12,
-              fontWeight: 600,
-              borderRadius: 8,
-              border: 'none',
+              fontSize: 11.5,
+              fontWeight: mode === 'raymarch' ? 600 : 400,
+              borderRadius: 5,
+              border: mode === 'raymarch' ? '1px solid #38bdf8' : '1px solid transparent',
               cursor: 'pointer',
-              transition: 'all 0.2s',
-              background: mode === 'raymarch' ? '#0891b2' : 'transparent',
-              color: mode === 'raymarch' ? '#fff' : '#94a3b8',
-              boxShadow: mode === 'raymarch' ? '0 2px 8px rgba(8, 145, 178, 0.4)' : 'none',
+              transition: 'all 0.15s ease',
+              background: mode === 'raymarch' ? '#0284c7' : 'transparent',
+              color: mode === 'raymarch' ? '#fff' : '#9ca3af',
+              boxShadow: mode === 'raymarch' ? '0 2px 8px rgba(2, 132, 199, 0.35)' : 'none',
             }}
           >
             Raymarch Volume
@@ -558,15 +595,15 @@ export default function VolumetricOverlay({ currentTime, onClose }: VolumetricOv
             onClick={() => handleModeChange('isosurface')}
             style={{
               padding: '6px 14px',
-              fontSize: 12,
-              fontWeight: 600,
-              borderRadius: 8,
-              border: 'none',
+              fontSize: 11.5,
+              fontWeight: mode === 'isosurface' ? 600 : 400,
+              borderRadius: 5,
+              border: mode === 'isosurface' ? '1px solid #38bdf8' : '1px solid transparent',
               cursor: 'pointer',
-              transition: 'all 0.2s',
-              background: mode === 'isosurface' ? '#d97706' : 'transparent',
-              color: mode === 'isosurface' ? '#fff' : '#94a3b8',
-              boxShadow: mode === 'isosurface' ? '0 2px 8px rgba(217, 119, 6, 0.4)' : 'none',
+              transition: 'all 0.15s ease',
+              background: mode === 'isosurface' ? '#0284c7' : 'transparent',
+              color: mode === 'isosurface' ? '#fff' : '#9ca3af',
+              boxShadow: mode === 'isosurface' ? '0 2px 8px rgba(2, 132, 199, 0.35)' : 'none',
             }}
           >
             Marching Cubes
@@ -576,10 +613,10 @@ export default function VolumetricOverlay({ currentTime, onClose }: VolumetricOv
         {/* Threshold slider with dynamic range */}
         <div style={{ display: 'flex', flexDirection: 'column' as const, gap: 4, minWidth: 260 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 11 }}>
-            <span style={{ color: '#94a3b8' }}>
+            <span style={{ color: '#9ca3af', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 600 }}>
               {mode === 'raymarch' ? 'Opacity Midpoint' : 'Isosurface Threshold'}
             </span>
-            <span id="current-threshold-label" style={{ fontFamily: 'monospace', color: '#22d3ee', fontWeight: 700 }}>
+            <span id="current-threshold-label" style={{ fontFamily: 'monospace', color: '#38bdf8', fontWeight: 700 }}>
               {thresholdVal.toFixed(2)} °C
             </span>
           </div>
@@ -594,11 +631,9 @@ export default function VolumetricOverlay({ currentTime, onClose }: VolumetricOv
             style={{
               width: '100%',
               cursor: 'pointer',
-              accentColor: '#22d3ee',
-              height: 6,
             }}
           />
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: '#64748b' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: '#6b7280', fontFamily: 'monospace' }}>
             <span id="slider-min-label">{valueRange.min.toFixed(2)} °C</span>
             <span id="slider-max-label">{valueRange.max.toFixed(2)} °C</span>
           </div>

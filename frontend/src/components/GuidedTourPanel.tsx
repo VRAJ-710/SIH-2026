@@ -26,75 +26,69 @@ export const GuidedTourPanel: React.FC<GuidedTourPanelProps> = ({
   onTogglePlay,
   onNext,
   onPrev,
-  onSelectBeat,
   onExit,
   onCallToAction,
 }) => {
   return (
     <div
       id="guided-tour-panel"
+      className="no-scrollbar"
       style={{
         position: 'absolute',
         top: 16,
         left: 428,
         zIndex: 9999,
-        background: 'rgba(15, 23, 42, 0.92)',
-        backdropFilter: 'blur(20px)',
-        WebkitBackdropFilter: 'blur(20px)',
-        border: '1px solid rgba(56, 189, 248, 0.35)',
-        borderRadius: '16px',
-        color: '#f8fafc',
+        background: 'rgba(30, 30, 30, 0.94)',
+        backdropFilter: 'blur(16px)',
+        WebkitBackdropFilter: 'blur(16px)',
+        border: '1px solid rgba(255, 255, 255, 0.08)',
+        borderRadius: '8px',
+        color: '#f3f4f6',
         width: '450px',
-        maxWidth: 'calc(100vw - 440px)',
-        boxShadow: '0 16px 40px rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
+        maxWidth: 'calc(100vw - 450px)',
+        boxShadow: '0 16px 36px rgba(0, 0, 0, 0.65)',
         fontFamily: 'Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-        padding: '18px',
-        animation: 'fadeIn 0.25s ease-out',
+        padding: '20px',
+        overflow: 'hidden',
+        animation: 'fadeIn 0.2s ease-out',
       }}
     >
-      {/* Top Header with Beat Indicator & Exit */}
+      {/* Top Edge Progress Bar (Task 2) */}
+      <div
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          height: '3px',
+          background: 'rgba(255, 255, 255, 0.08)',
+        }}
+      >
+        <div
+          style={{
+            height: '100%',
+            width: `${((beatIndex + 1) / totalBeats) * 100}%`,
+            background: '#38bdf8',
+            transition: 'width 0.35s ease',
+          }}
+        />
+      </div>
+
+      {/* Top Clean Header Row: BEAT X OF 5, title badge, and borderless Exit X (Task 2) */}
       <div
         style={{
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
           marginBottom: 12,
-          borderBottom: '1px solid rgba(100, 116, 139, 0.25)',
-          paddingBottom: 10,
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: '2px 8px',
-              borderRadius: '9999px',
-              fontSize: '11px',
-              fontWeight: 700,
-              background: 'rgba(14, 165, 233, 0.2)',
-              border: '1px solid #38bdf8',
-              color: '#38bdf8',
-              letterSpacing: '0.04em',
-              textTransform: 'uppercase',
-            }}
-          >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '11px', color: '#9ca3af', letterSpacing: '0.04em' }}>
+          <span style={{ fontWeight: 600, textTransform: 'uppercase' }}>
             Beat {beatIndex + 1} of {totalBeats}
           </span>
-          <span
-            style={{
-              fontSize: '11px',
-              fontWeight: 600,
-              color: '#f59e0b',
-              background: 'rgba(245, 158, 11, 0.15)',
-              padding: '2px 7px',
-              borderRadius: '6px',
-              border: '1px solid rgba(245, 158, 11, 0.3)',
-            }}
-          >
-            {currentBeat.badge}
-          </span>
+          <span>•</span>
+          <span style={{ color: '#cbd5e1' }}>{currentBeat.badge}</span>
         </div>
 
         <button
@@ -102,125 +96,94 @@ export const GuidedTourPanel: React.FC<GuidedTourPanelProps> = ({
           type="button"
           onClick={onExit}
           style={{
-            background: 'rgba(239, 68, 68, 0.15)',
-            border: '1px solid rgba(239, 68, 68, 0.3)',
-            borderRadius: '6px',
-            color: '#fca5a5',
-            fontSize: '11px',
-            fontWeight: 600,
-            padding: '3px 8px',
+            background: 'transparent',
+            border: 'none',
+            color: '#9ca3af',
+            fontSize: '14px',
             cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 4,
-            transition: 'all 0.15s',
+            padding: '2px 4px',
+            lineHeight: 1,
+            transition: 'color 0.15s ease',
           }}
-          title="Exit Guided Tour and return to interactive mode"
+          title="Exit Guided Tour"
         >
-          ✕ Exit Tour
+          ✕
         </button>
       </div>
 
       {/* Title & Date Context */}
-      <div style={{ marginBottom: 10 }}>
+      <div>
         <h2
           id="tour-beat-title"
           style={{
-            margin: '0 0 4px 0',
-            fontSize: '16px',
+            margin: '0 0 6px 0',
+            fontSize: '17px',
             fontWeight: 700,
-            letterSpacing: '0.02em',
-            color: '#f8fafc',
+            letterSpacing: '-0.01em',
+            color: '#f3f4f6',
           }}
         >
           {currentBeat.title}
         </h2>
-        <div style={{ fontSize: '11.5px', color: '#94a3b8', display: 'flex', gap: 12, alignItems: 'center' }}>
-          <span>📅 Date: <strong style={{ color: '#e2e8f0' }}>{currentBeat.targetDate}</strong></span>
+        <div style={{ fontSize: '11px', color: '#9ca3af', display: 'flex', gap: 8, alignItems: 'center', marginBottom: 16 }}>
+          <span>Date: <strong style={{ color: '#e5e7eb', fontWeight: 600 }}>{currentBeat.targetDate}</strong></span>
           <span>•</span>
-          <span>Layer: <strong style={{ color: '#38bdf8' }}>Surface Temperature</strong></span>
+          <span>Layer: <strong style={{ color: '#38bdf8', fontWeight: 600 }}>Surface Temperature</strong></span>
         </div>
       </div>
 
-      {/* Stepper Dots */}
-      <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
-        {Array.from({ length: totalBeats }).map((_, idx) => (
-          <button
-            key={idx}
-            type="button"
-            onClick={() => onSelectBeat(idx)}
-            style={{
-              flex: 1,
-              height: 5,
-              borderRadius: 3,
-              background: idx === beatIndex ? '#38bdf8' : idx < beatIndex ? 'rgba(56, 189, 248, 0.4)' : 'rgba(100, 116, 139, 0.3)',
-              border: 'none',
-              cursor: 'pointer',
-              transition: 'all 0.2s',
-              boxShadow: idx === beatIndex ? '0 0 8px #38bdf8' : 'none',
-            }}
-            title={`Jump to Beat ${idx + 1}`}
-          />
-        ))}
-      </div>
-
-      {/* Plain Language Caption */}
+      {/* Caption Paragraph (No inner border box, clean typography & spacing - Task 2) */}
       <div
         id="tour-beat-caption"
         style={{
-          background: 'rgba(30, 41, 59, 0.65)',
-          border: '1px solid rgba(56, 189, 248, 0.25)',
-          borderRadius: '10px',
-          padding: '12px 14px',
           fontSize: '12.5px',
-          lineHeight: 1.5,
-          color: '#e2e8f0',
-          marginBottom: 10,
+          lineHeight: 1.55,
+          color: '#d1d5db',
+          marginBottom: 16,
         }}
       >
         {currentBeat.caption}
       </div>
 
-      {/* Scientific Context / Honesty Card */}
+      {/* Scientific Context Callout (Unified label, subtle lighter bg, left border - Task 2) */}
       <div
         id="tour-beat-science-note"
         style={{
-          background: 'rgba(15, 23, 42, 0.75)',
+          background: '#28282b',
           borderLeft: '3px solid #38bdf8',
-          borderTop: '1px solid rgba(100, 116, 139, 0.2)',
-          borderRight: '1px solid rgba(100, 116, 139, 0.2)',
-          borderBottom: '1px solid rgba(100, 116, 139, 0.2)',
-          borderRadius: '0 8px 8px 0',
-          padding: '10px 12px',
+          borderRadius: '0 6px 6px 0',
+          padding: '10px 14px',
           fontSize: '11px',
-          lineHeight: 1.45,
-          color: '#cbd5e1',
-          marginBottom: 14,
+          lineHeight: 1.5,
+          color: '#9ca3af',
+          marginBottom: 16,
         }}
       >
-        <span style={{ fontWeight: 700, color: '#38bdf8' }}>🔬 Science Focus: </span>
-        {currentBeat.scienceNote}
+        <strong style={{ color: '#e5e7eb', fontWeight: 600 }}>Scientific Context: </strong>
+        <span style={{ color: '#cbd5e1' }}>
+          {currentBeat.scienceNote.replace(/^Scientific Context:\s*/i, '')}
+        </span>
       </div>
 
       {/* Call to Action Button if Beat provides one */}
       {currentBeat.callToAction && onCallToAction && (
-        <div style={{ marginBottom: 14 }}>
+        <div style={{ marginBottom: 16 }}>
           <button
             id="tour-cta-btn"
             type="button"
             onClick={() => onCallToAction(currentBeat.callToAction!.action, currentBeat.instrumentId)}
             style={{
               width: '100%',
-              padding: '9px 12px',
-              fontSize: '12.5px',
-              fontWeight: 700,
+              padding: '8px 12px',
+              fontSize: '12px',
+              fontWeight: 600,
               cursor: 'pointer',
-              background: 'linear-gradient(135deg, #0284c7, #0369a1)',
+              background: '#0284c7',
               color: '#ffffff',
               border: '1px solid #38bdf8',
-              borderRadius: '8px',
-              boxShadow: '0 0 15px rgba(56, 189, 248, 0.4)',
-              transition: 'all 0.2s ease',
+              borderRadius: '5px',
+              boxShadow: '0 2px 10px rgba(2, 132, 199, 0.35)',
+              transition: 'all 0.15s ease',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -232,14 +195,14 @@ export const GuidedTourPanel: React.FC<GuidedTourPanelProps> = ({
         </div>
       )}
 
-      {/* Controls Bar: Prev, Play/Pause, Next, Status */}
+      {/* Bottom Nav: Ghost button style for Prev/Next, subdued visible primary for Auto-Play (Task 2) */}
       <div
         style={{
           display: 'flex',
           gap: 8,
           alignItems: 'center',
-          borderTop: '1px solid rgba(100, 116, 139, 0.25)',
-          paddingTop: 12,
+          borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+          paddingTop: 14,
         }}
       >
         <button
@@ -250,14 +213,15 @@ export const GuidedTourPanel: React.FC<GuidedTourPanelProps> = ({
           style={{
             flex: 1,
             padding: '7px 10px',
-            fontSize: '12px',
-            fontWeight: 600,
+            fontSize: '11.5px',
+            fontWeight: 500,
             cursor: beatIndex === 0 ? 'not-allowed' : 'pointer',
-            opacity: beatIndex === 0 ? 0.4 : 1,
-            background: 'rgba(30, 41, 59, 0.8)',
-            border: '1px solid rgba(100, 116, 139, 0.4)',
-            borderRadius: '8px',
-            color: '#cbd5e1',
+            opacity: beatIndex === 0 ? 0.35 : 1,
+            background: 'transparent',
+            border: '1px solid rgba(255, 255, 255, 0.12)',
+            borderRadius: '5px',
+            color: '#d1d5db',
+            transition: 'all 0.15s ease',
           }}
         >
           ⏮ Previous
@@ -268,18 +232,17 @@ export const GuidedTourPanel: React.FC<GuidedTourPanelProps> = ({
           type="button"
           onClick={onTogglePlay}
           style={{
-            flex: 1.5,
+            flex: 1.4,
             padding: '7px 12px',
-            fontSize: '12px',
-            fontWeight: 700,
+            fontSize: '11.5px',
+            fontWeight: 600,
             cursor: 'pointer',
-            background: isPlaying
-              ? 'linear-gradient(135deg, rgba(239, 68, 68, 0.35), rgba(185, 28, 28, 0.45))'
-              : 'linear-gradient(135deg, rgba(14, 165, 233, 0.35), rgba(2, 132, 199, 0.45))',
-            border: isPlaying ? '1px solid #f87171' : '1px solid #38bdf8',
-            borderRadius: '8px',
+            background: isPlaying ? '#28282b' : '#0284c7',
+            border: isPlaying ? '1px solid rgba(255, 255, 255, 0.2)' : '1px solid #38bdf8',
+            borderRadius: '5px',
             color: '#ffffff',
-            boxShadow: isPlaying ? '0 2px 8px rgba(239, 68, 68, 0.3)' : '0 2px 8px rgba(56, 189, 248, 0.3)',
+            boxShadow: isPlaying ? 'none' : '0 2px 8px rgba(2, 132, 199, 0.35)',
+            transition: 'all 0.15s ease',
           }}
         >
           {isPlaying ? '⏸ Pause Tour' : '▶ Auto-Play Tour'}
@@ -293,14 +256,15 @@ export const GuidedTourPanel: React.FC<GuidedTourPanelProps> = ({
           style={{
             flex: 1,
             padding: '7px 10px',
-            fontSize: '12px',
-            fontWeight: 600,
+            fontSize: '11.5px',
+            fontWeight: 500,
             cursor: beatIndex === totalBeats - 1 ? 'not-allowed' : 'pointer',
-            opacity: beatIndex === totalBeats - 1 ? 0.4 : 1,
-            background: 'rgba(30, 41, 59, 0.8)',
-            border: '1px solid rgba(100, 116, 139, 0.4)',
-            borderRadius: '8px',
-            color: '#cbd5e1',
+            opacity: beatIndex === totalBeats - 1 ? 0.35 : 1,
+            background: 'transparent',
+            border: '1px solid rgba(255, 255, 255, 0.12)',
+            borderRadius: '5px',
+            color: '#d1d5db',
+            transition: 'all 0.15s ease',
           }}
         >
           Next ⏭
@@ -322,7 +286,7 @@ export const GuidedTourPanel: React.FC<GuidedTourPanelProps> = ({
             gap: 6,
           }}
         >
-          <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: '#38bdf8', animation: 'pulse 1.5s infinite' }} />
+          <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: '#38bdf8' }} />
           {isFlying ? (
             <span>Flying camera to {currentBeat.title}...</span>
           ) : (

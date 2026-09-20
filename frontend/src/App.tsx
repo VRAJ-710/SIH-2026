@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, lazy, Suspense } from 'react';
+import gsap from 'gsap';
 import * as Cesium from 'cesium';
 import 'cesium/Build/Cesium/Widgets/widgets.css';
 import Plot from 'react-plotly.js';
@@ -167,6 +168,32 @@ export default function App() {
   const [basemapStatus, setBasemapStatus] = useState<'ion' | 'offline'>(
     typeof navigator !== 'undefined' && !navigator.onLine ? 'offline' : 'ion'
   );
+
+  // Stage UI Polish (Task 8): Collapsible Sidebar State with GSAP smooth transition
+  const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(false);
+  const [isSidebarPinned, setIsSidebarPinned] = useState<boolean>(false);
+  const sidebarRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!sidebarRef.current) return;
+    if (isSidebarOpen) {
+      gsap.to(sidebarRef.current, {
+        x: 0,
+        opacity: 1,
+        duration: 0.35,
+        ease: 'power2.out',
+        overwrite: 'auto',
+      });
+    } else {
+      gsap.to(sidebarRef.current, {
+        x: -425,
+        opacity: 0,
+        duration: 0.28,
+        ease: 'power2.in',
+        overwrite: 'auto',
+      });
+    }
+  }, [isSidebarOpen]);
 
   // Initialize Cesium Viewer with Automatic Offline / Timeout Resilience (Stage 10)
   useEffect(() => {
@@ -506,20 +533,20 @@ export default function App() {
 
     instruments.forEach((inst) => {
       let color = Cesium.Color.WHITE;
-      if (inst.instrument_type === 'argo') color = Cesium.Color.YELLOW;
-      if (inst.instrument_type === 'glider') color = Cesium.Color.CYAN;
-      if (inst.instrument_type === 'buoy') color = Cesium.Color.RED;
-      if (inst.instrument_type === 'adcp') color = Cesium.Color.fromCssColorString('#c084fc');
+      if (inst.instrument_type === 'argo') color = Cesium.Color.fromCssColorString('#fbbf24');
+      if (inst.instrument_type === 'glider') color = Cesium.Color.fromCssColorString('#06b6d4');
+      if (inst.instrument_type === 'buoy') color = Cesium.Color.fromCssColorString('#f43f5e');
+      if (inst.instrument_type === 'adcp') color = Cesium.Color.fromCssColorString('#a855f7');
 
       const isTargetInstrument = activeTourBeat?.instrumentId === inst.instrument_id;
 
       ds.entities.add({
         position: Cesium.Cartesian3.fromDegrees(inst.lon, inst.lat),
         point: {
-          pixelSize: isTargetInstrument ? 22 : 12,
-          color: isTargetInstrument ? Cesium.Color.fromCssColorString('#4ade80') : color,
-          outlineColor: isTargetInstrument ? Cesium.Color.WHITE : Cesium.Color.BLACK,
-          outlineWidth: isTargetInstrument ? 3 : 2,
+          pixelSize: isTargetInstrument ? 18 : 11,
+          color: isTargetInstrument ? Cesium.Color.fromCssColorString('#38bdf8') : color,
+          outlineColor: isTargetInstrument ? Cesium.Color.WHITE : Cesium.Color.fromCssColorString('#121214'),
+          outlineWidth: isTargetInstrument ? 2.5 : 1.5,
         },
         properties: {
           instrument_id: inst.instrument_id,
@@ -804,59 +831,117 @@ export default function App() {
     (window as any).exitTour = handleExitTour;
     (window as any).setTourBeat = activateTourBeat;
     (window as any).setUiMode = setUiMode;
+    (window as any).setSidebarOpen = (open: boolean, pin = false) => {
+      setIsSidebarOpen(open);
+      setIsSidebarPinned(pin);
+    };
     return () => {
       delete (window as any).fetchProfile;
       delete (window as any).startTour;
       delete (window as any).exitTour;
       delete (window as any).setTourBeat;
       delete (window as any).setUiMode;
+      delete (window as any).setSidebarOpen;
     };
   }, [timeSteps, depthLevels]);
 
   return (
     <div style={{ position: 'relative', width: '100vw', height: '100vh', overflow: 'hidden' }}>
-      {/* Top Left WMS Panel (Stage 7b Unified Glassmorphic HUD) */}
+      {/* Collapsed Edge Tab / Icon (Task 8: Minimal footprint by default) */}
+      <button
+        id="sidebar-collapsed-tab"
+        type="button"
+        onClick={() => {
+          setIsSidebarOpen(true);
+          setIsSidebarPinned(true);
+        }}
+        onMouseEnter={() => setIsSidebarOpen(true)}
+        style={{
+          position: 'absolute',
+          top: 16,
+          left: 16,
+          zIndex: 9998,
+          background: 'rgba(30, 30, 30, 0.94)',
+          backdropFilter: 'blur(16px)',
+          WebkitBackdropFilter: 'blur(16px)',
+          border: '1px solid rgba(255, 255, 255, 0.1)',
+          borderRadius: '6px',
+          padding: '8px 14px',
+          color: '#f3f4f6',
+          cursor: 'pointer',
+          display: isSidebarOpen ? 'none' : 'flex',
+          alignItems: 'center',
+          gap: 10,
+          boxShadow: '0 8px 24px rgba(0, 0, 0, 0.5)',
+          fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
+          fontSize: '12px',
+          fontWeight: 600,
+          transition: 'all 0.15s ease',
+        }}
+        title="Open Ocean Controls (Click or Hover)"
+      >
+        <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#38bdf8', boxShadow: '0 0 8px #38bdf8' }} />
+        <span>Cyclone Amphan : GLORYS12</span>
+        <span style={{ color: '#9ca3af', fontSize: '11px', display: 'flex', alignItems: 'center' }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="9 18 15 12 9 6"></polyline>
+          </svg>
+        </span>
+      </button>
+
+      {/* Top Left WMS Panel (Tasks 1 & 8: Neutral Dark Slate HUD with GSAP Expand/Collapse) */}
       <div
         id="wms-panel"
+        ref={sidebarRef}
+        className="no-scrollbar"
+        onMouseEnter={() => setIsSidebarOpen(true)}
+        onMouseLeave={() => {
+          if (!isSidebarPinned) {
+            setIsSidebarOpen(false);
+          }
+        }}
         style={{
           position: 'absolute',
           top: 16,
           left: 16,
           zIndex: show3DOverlay ? 25000 : 9999,
-          background: 'rgba(15, 23, 42, 0.88)',
+          background: 'rgba(30, 30, 30, 0.94)',
           backdropFilter: 'blur(16px)',
           WebkitBackdropFilter: 'blur(16px)',
-          border: '1px solid rgba(56, 189, 248, 0.28)',
-          borderRadius: '14px',
-          color: '#f8fafc',
+          border: '1px solid rgba(255, 255, 255, 0.08)',
+          borderRadius: '8px',
+          color: '#f3f4f6',
           width: '395px',
           maxHeight: 'calc(100vh - 36px)',
           overflowY: 'auto',
-          boxShadow: '0 12px 36px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.08)',
+          boxShadow: '0 16px 36px rgba(0, 0, 0, 0.65)',
           fontFamily: 'Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-          fontSize: '12.5px',
-          padding: '16px',
+          fontSize: '12px',
+          padding: '18px',
+          transform: 'translateX(-425px)',
+          opacity: 0,
+          pointerEvents: isSidebarOpen ? 'auto' : 'none',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, borderBottom: '1px solid rgba(100, 116, 139, 0.25)', paddingBottom: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, borderBottom: '1px solid rgba(255, 255, 255, 0.08)', paddingBottom: 10 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#38bdf8', boxShadow: '0 0 8px #38bdf8', display: 'inline-block' }} />
             <div>
-              <div style={{ fontWeight: 700, fontSize: '13px', letterSpacing: '0.04em', textTransform: 'uppercase', color: '#f8fafc' }}>
+              <div style={{ fontWeight: 700, fontSize: '13px', letterSpacing: '0.04em', textTransform: 'uppercase', color: '#f3f4f6' }}>
                 Cyclone Amphan: GLORYS12
               </div>
-              <div style={{ fontSize: '10px', color: '#94a3b8', letterSpacing: '0.02em', display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
+              <div style={{ fontSize: '10px', color: '#9ca3af', letterSpacing: '0.02em', display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
                 <span>Bay of Bengal (8–23°N, 82–92°E) • Live ncWMS</span>
                 <span
                   id="basemap-status-badge"
                   style={{
-                    padding: '1px 5px',
+                    padding: '1px 6px',
                     borderRadius: '4px',
                     fontSize: '9.5px',
                     fontWeight: 600,
-                    background: basemapStatus === 'ion' ? 'rgba(56, 189, 248, 0.15)' : 'rgba(245, 158, 11, 0.2)',
+                    background: basemapStatus === 'ion' ? 'rgba(56, 189, 248, 0.12)' : 'rgba(245, 158, 11, 0.15)',
                     color: basemapStatus === 'ion' ? '#38bdf8' : '#f59e0b',
-                    border: basemapStatus === 'ion' ? '1px solid rgba(56, 189, 248, 0.3)' : '1px solid rgba(245, 158, 11, 0.4)',
+                    border: basemapStatus === 'ion' ? '1px solid rgba(56, 189, 248, 0.25)' : '1px solid rgba(245, 158, 11, 0.3)',
                   }}
                 >
                   {basemapStatus === 'ion' ? '🛰️ Ion Basemap' : '🌍 Offline Basemap (NaturalEarthII)'}
@@ -864,10 +949,51 @@ export default function App() {
               </div>
             </div>
           </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <button
+              id="pin-sidebar-btn"
+              type="button"
+              onClick={() => setIsSidebarPinned(!isSidebarPinned)}
+              style={{
+                background: isSidebarPinned ? 'rgba(56, 189, 248, 0.15)' : 'transparent',
+                border: isSidebarPinned ? '1px solid #38bdf8' : '1px solid rgba(255, 255, 255, 0.12)',
+                borderRadius: '4px',
+                color: isSidebarPinned ? '#38bdf8' : '#9ca3af',
+                fontSize: '10px',
+                fontWeight: 600,
+                padding: '2px 6px',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+              }}
+              title={isSidebarPinned ? 'Unpin Sidebar (Auto-collapse on mouse leave)' : 'Pin Sidebar (Keep open)'}
+            >
+              {isSidebarPinned ? '📌 Pinned' : '📌 Pin'}
+            </button>
+            <button
+              id="collapse-sidebar-btn"
+              type="button"
+              onClick={() => {
+                setIsSidebarPinned(false);
+                setIsSidebarOpen(false);
+              }}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: '#9ca3af',
+                fontSize: '14px',
+                padding: '2px 4px',
+                cursor: 'pointer',
+                lineHeight: 1,
+              }}
+              title="Collapse Sidebar"
+            >
+              ✕
+            </button>
+          </div>
         </div>
 
-        {/* Forecaster / Public Mode Toggle (Task 3) */}
-        <div style={{ display: 'flex', background: 'rgba(30, 41, 59, 0.7)', padding: '3px', borderRadius: '8px', border: '1px solid rgba(100, 116, 139, 0.3)', marginBottom: 12 }}>
+        {/* Forecaster / Public Mode Toggle (Task 1: Ghost inactive, solid active) */}
+        <div style={{ display: 'flex', gap: 4, background: '#242426', padding: '3px', borderRadius: '6px', border: '1px solid rgba(255, 255, 255, 0.06)', marginBottom: 16 }}>
           <button
             id="mode-forecaster-btn"
             type="button"
@@ -876,12 +1002,12 @@ export default function App() {
               flex: 1,
               padding: '6px 8px',
               fontSize: '11px',
-              fontWeight: uiMode === 'forecaster' ? 700 : 500,
+              fontWeight: uiMode === 'forecaster' ? 600 : 400,
               cursor: 'pointer',
-              borderRadius: '6px',
-              border: 'none',
-              background: uiMode === 'forecaster' ? 'linear-gradient(135deg, #0284c7, #0369a1)' : 'transparent',
-              color: uiMode === 'forecaster' ? '#fff' : '#94a3b8',
+              borderRadius: '5px',
+              border: uiMode === 'forecaster' ? '1px solid #38bdf8' : '1px solid transparent',
+              background: uiMode === 'forecaster' ? '#0284c7' : 'transparent',
+              color: uiMode === 'forecaster' ? '#fff' : '#9ca3af',
               boxShadow: uiMode === 'forecaster' ? '0 2px 8px rgba(2, 132, 199, 0.35)' : 'none',
               transition: 'all 0.15s ease',
             }}
@@ -896,13 +1022,13 @@ export default function App() {
               flex: 1,
               padding: '6px 8px',
               fontSize: '11px',
-              fontWeight: uiMode === 'public' ? 700 : 500,
+              fontWeight: uiMode === 'public' ? 600 : 400,
               cursor: 'pointer',
-              borderRadius: '6px',
-              border: 'none',
-              background: uiMode === 'public' ? 'linear-gradient(135deg, #059669, #047857)' : 'transparent',
-              color: uiMode === 'public' ? '#fff' : '#94a3b8',
-              boxShadow: uiMode === 'public' ? '0 2px 8px rgba(5, 150, 105, 0.35)' : 'none',
+              borderRadius: '5px',
+              border: uiMode === 'public' ? '1px solid #38bdf8' : '1px solid transparent',
+              background: uiMode === 'public' ? '#0284c7' : 'transparent',
+              color: uiMode === 'public' ? '#fff' : '#9ca3af',
+              boxShadow: uiMode === 'public' ? '0 2px 8px rgba(2, 132, 199, 0.35)' : 'none',
               transition: 'all 0.15s ease',
             }}
           >
@@ -912,20 +1038,20 @@ export default function App() {
 
         {/* Guided Tour Launcher in Forecaster Mode */}
         {uiMode === 'forecaster' && !isTourActive && (
-          <div style={{ marginBottom: 12 }}>
+          <div style={{ marginBottom: 16 }}>
             <button
               id="launch-tour-btn-forecaster"
               type="button"
               onClick={handleStartTour}
               style={{
                 width: '100%',
-                padding: '6px 10px',
+                padding: '7px 10px',
                 fontSize: '11px',
                 fontWeight: 600,
                 cursor: 'pointer',
-                background: 'rgba(30, 41, 59, 0.8)',
-                border: '1px solid rgba(56, 189, 248, 0.4)',
-                borderRadius: '6px',
+                background: 'transparent',
+                border: '1px solid rgba(255, 255, 255, 0.12)',
+                borderRadius: '5px',
                 color: '#38bdf8',
                 display: 'flex',
                 alignItems: 'center',
@@ -944,18 +1070,17 @@ export default function App() {
           <div
             id="public-tour-banner"
             style={{
-              marginBottom: 12,
-              padding: '12px',
-              background: 'linear-gradient(135deg, rgba(14, 165, 233, 0.15), rgba(5, 150, 105, 0.2))',
-              border: '1px solid rgba(56, 189, 248, 0.4)',
-              borderRadius: '10px',
-              boxShadow: '0 4px 14px rgba(0, 0, 0, 0.3)',
+              marginBottom: 16,
+              padding: '12px 14px',
+              background: '#242426',
+              border: '1px solid rgba(255, 255, 255, 0.08)',
+              borderRadius: '6px',
             }}
           >
-            <div style={{ fontWeight: 700, fontSize: '12px', color: '#f8fafc', marginBottom: 3 }}>
+            <div style={{ fontWeight: 600, fontSize: '12px', color: '#f3f4f6', marginBottom: 4 }}>
               🎓 Public Outreach Story Tour
             </div>
-            <div style={{ fontSize: '11px', color: '#cbd5e1', lineHeight: 1.4, marginBottom: 8 }}>
+            <div style={{ fontSize: '11px', color: '#9ca3af', lineHeight: 1.45, marginBottom: 10 }}>
               Explore Super Cyclone Amphan across 5 story beats: pre-storm warm pool, Category 5 peak, Sundarbans landfall, cold wake upwelling, and biological aftermath.
             </div>
             <button
@@ -965,14 +1090,15 @@ export default function App() {
               style={{
                 width: '100%',
                 padding: '8px 12px',
-                fontWeight: 700,
-                fontSize: '12px',
+                fontWeight: 600,
+                fontSize: '11.5px',
                 cursor: 'pointer',
-                background: 'linear-gradient(135deg, #0284c7, #0369a1)',
+                background: '#0284c7',
                 color: '#ffffff',
                 border: '1px solid #38bdf8',
-                borderRadius: '6px',
-                boxShadow: '0 2px 10px rgba(56, 189, 248, 0.3)',
+                borderRadius: '5px',
+                boxShadow: '0 2px 8px rgba(2, 132, 199, 0.35)',
+                transition: 'all 0.15s ease',
               }}
             >
               🌟 Start Guided Story Tour
@@ -987,12 +1113,12 @@ export default function App() {
         ) : (
           <>
             {/* Task 1: Ocean Variable Selector */}
-            <div style={{ marginBottom: 12, borderBottom: '1px solid rgba(100, 116, 139, 0.2)', paddingBottom: 10 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                <strong style={{ color: '#cbd5e1', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
-                  {uiMode === 'public' ? 'Ocean Parameter:' : 'Variable (WMS Layer):'}
-                </strong>
-                <span id="active-variable-label" style={{ fontWeight: 700, color: '#38bdf8', fontSize: '11px' }}>
+            <div style={{ marginBottom: 16, borderBottom: '1px solid rgba(255, 255, 255, 0.08)', paddingBottom: 16 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                <span style={{ color: '#9ca3af', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>
+                  {uiMode === 'public' ? 'OCEAN PARAMETER' : 'VARIABLE'}
+                </span>
+                <span id="active-variable-label" style={{ fontWeight: 600, color: '#38bdf8', fontSize: '11px' }}>
                   {currentVarConfig.display_name}
                 </span>
               </div>
@@ -1006,18 +1132,16 @@ export default function App() {
                       type="button"
                       onClick={() => handleVariableChange(v)}
                       style={{
-                        padding: '6px 8px',
+                        padding: '7px 8px',
                         fontSize: '11px',
-                        fontWeight: isSelected ? 700 : 500,
+                        fontWeight: isSelected ? 600 : 400,
                         cursor: 'pointer',
-                        background: isSelected
-                          ? 'linear-gradient(135deg, #0284c7, #0369a1)'
-                          : 'rgba(30, 41, 59, 0.65)',
-                        color: isSelected ? '#ffffff' : '#94a3b8',
-                        border: isSelected ? '1px solid #38bdf8' : '1px solid rgba(100, 116, 139, 0.3)',
-                        borderRadius: '8px',
+                        background: isSelected ? '#0284c7' : 'transparent',
+                        color: isSelected ? '#ffffff' : '#9ca3af',
+                        border: isSelected ? '1px solid #38bdf8' : '1px solid rgba(255, 255, 255, 0.1)',
+                        borderRadius: '5px',
                         textAlign: 'center',
-                        boxShadow: isSelected ? '0 2px 10px rgba(56, 189, 248, 0.3)' : 'none',
+                        boxShadow: isSelected ? '0 2px 8px rgba(2, 132, 199, 0.35)' : 'none',
                         transition: 'all 0.15s ease',
                       }}
                     >
@@ -1032,10 +1156,10 @@ export default function App() {
             </div>
 
             {/* Depth Control Slider */}
-            <div style={{ marginBottom: 12, borderBottom: '1px solid rgba(100, 116, 139, 0.2)', paddingBottom: 10 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                <strong style={{ color: '#cbd5e1', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Depth (ELEVATION):</strong>
-                <span id="current-depth-label" style={{ fontWeight: 700, color: '#38bdf8', fontFamily: 'monospace', fontSize: '11.5px' }}>
+            <div style={{ marginBottom: 16, borderBottom: '1px solid rgba(255, 255, 255, 0.08)', paddingBottom: 16 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                <span style={{ color: '#9ca3af', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>DEPTH</span>
+                <span id="current-depth-label" style={{ fontWeight: 600, color: '#38bdf8', fontFamily: 'monospace', fontSize: '11px' }}>
                   {currentDepth ? `${currentDepth.depthMeters.toFixed(1)} m (Level ${depthIndex + 1}/${depthLevels.length})` : 'Loading...'}
                 </span>
               </div>
@@ -1047,26 +1171,27 @@ export default function App() {
                 step={1}
                 value={depthIndex}
                 onChange={(e) => setDepthIndex(Number(e.target.value))}
-                style={{ width: '100%', cursor: 'pointer', accentColor: '#38bdf8' }}
+                style={{ width: '100%', cursor: 'pointer' }}
               />
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: '#64748b', marginTop: 2 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: '#6b7280', marginTop: 3 }}>
                 <span>Surface ({depthLevels[0]?.depthMeters.toFixed(1)}m)</span>
                 <span>Deep ({depthLevels[depthLevels.length - 1]?.depthMeters.toFixed(1)}m)</span>
               </div>
-              <div style={{ display: 'flex', gap: '6px', marginTop: 6 }}>
+              <div style={{ display: 'flex', gap: '6px', marginTop: 8 }}>
                 <button
                   type="button"
                   onClick={() => setDepthIndex(0)}
                   style={{
                     flex: 1,
-                    padding: '4px 6px',
+                    padding: '5px 6px',
                     fontSize: '10.5px',
-                    fontWeight: depthIndex === 0 ? 700 : 500,
+                    fontWeight: depthIndex === 0 ? 600 : 400,
                     cursor: 'pointer',
-                    background: depthIndex === 0 ? '#0891b2' : 'rgba(30, 41, 59, 0.65)',
-                    color: depthIndex === 0 ? '#fff' : '#94a3b8',
-                    border: depthIndex === 0 ? '1px solid #22d3ee' : '1px solid rgba(100, 116, 139, 0.3)',
-                    borderRadius: '6px',
+                    background: depthIndex === 0 ? '#0284c7' : 'transparent',
+                    color: depthIndex === 0 ? '#fff' : '#9ca3af',
+                    border: depthIndex === 0 ? '1px solid #38bdf8' : '1px solid rgba(255, 255, 255, 0.1)',
+                    borderRadius: '5px',
+                    transition: 'all 0.15s ease',
                   }}
                 >
                   Surface (0.5m)
@@ -1079,14 +1204,15 @@ export default function App() {
                   }}
                   style={{
                     flex: 1,
-                    padding: '4px 6px',
+                    padding: '5px 6px',
                     fontSize: '10.5px',
-                    fontWeight: depthLevels[depthIndex]?.depthMeters >= 90 && depthLevels[depthIndex]?.depthMeters < 150 ? 700 : 500,
+                    fontWeight: depthLevels[depthIndex]?.depthMeters >= 90 && depthLevels[depthIndex]?.depthMeters < 150 ? 600 : 400,
                     cursor: 'pointer',
-                    background: depthLevels[depthIndex]?.depthMeters >= 90 && depthLevels[depthIndex]?.depthMeters < 150 ? '#0891b2' : 'rgba(30, 41, 59, 0.65)',
-                    color: depthLevels[depthIndex]?.depthMeters >= 90 && depthLevels[depthIndex]?.depthMeters < 150 ? '#fff' : '#94a3b8',
-                    border: depthLevels[depthIndex]?.depthMeters >= 90 && depthLevels[depthIndex]?.depthMeters < 150 ? '1px solid #22d3ee' : '1px solid rgba(100, 116, 139, 0.3)',
-                    borderRadius: '6px',
+                    background: depthLevels[depthIndex]?.depthMeters >= 90 && depthLevels[depthIndex]?.depthMeters < 150 ? '#0284c7' : 'transparent',
+                    color: depthLevels[depthIndex]?.depthMeters >= 90 && depthLevels[depthIndex]?.depthMeters < 150 ? '#fff' : '#9ca3af',
+                    border: depthLevels[depthIndex]?.depthMeters >= 90 && depthLevels[depthIndex]?.depthMeters < 150 ? '1px solid #38bdf8' : '1px solid rgba(255, 255, 255, 0.1)',
+                    borderRadius: '5px',
+                    transition: 'all 0.15s ease',
                   }}
                 >
                   Thermocline (92m)
@@ -1099,14 +1225,15 @@ export default function App() {
                   }}
                   style={{
                     flex: 1,
-                    padding: '4px 6px',
+                    padding: '5px 6px',
                     fontSize: '10.5px',
-                    fontWeight: depthLevels[depthIndex]?.depthMeters >= 400 && depthLevels[depthIndex]?.depthMeters < 600 ? 700 : 500,
+                    fontWeight: depthLevels[depthIndex]?.depthMeters >= 400 && depthLevels[depthIndex]?.depthMeters < 600 ? 600 : 400,
                     cursor: 'pointer',
-                    background: depthLevels[depthIndex]?.depthMeters >= 400 && depthLevels[depthIndex]?.depthMeters < 600 ? '#0891b2' : 'rgba(30, 41, 59, 0.65)',
-                    color: depthLevels[depthIndex]?.depthMeters >= 400 && depthLevels[depthIndex]?.depthMeters < 600 ? '#fff' : '#94a3b8',
-                    border: depthLevels[depthIndex]?.depthMeters >= 400 && depthLevels[depthIndex]?.depthMeters < 600 ? '1px solid #22d3ee' : '1px solid rgba(100, 116, 139, 0.3)',
-                    borderRadius: '6px',
+                    background: depthLevels[depthIndex]?.depthMeters >= 400 && depthLevels[depthIndex]?.depthMeters < 600 ? '#0284c7' : 'transparent',
+                    color: depthLevels[depthIndex]?.depthMeters >= 400 && depthLevels[depthIndex]?.depthMeters < 600 ? '#fff' : '#9ca3af',
+                    border: depthLevels[depthIndex]?.depthMeters >= 400 && depthLevels[depthIndex]?.depthMeters < 600 ? '1px solid #38bdf8' : '1px solid rgba(255, 255, 255, 0.1)',
+                    borderRadius: '5px',
+                    transition: 'all 0.15s ease',
                   }}
                 >
                   Deep (454m)
@@ -1115,10 +1242,10 @@ export default function App() {
             </div>
 
             {/* Time Control Scrubber & Animation */}
-            <div style={{ marginBottom: 12, borderBottom: '1px solid rgba(100, 116, 139, 0.2)', paddingBottom: 10 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                <strong style={{ color: '#cbd5e1', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Time (TIME):</strong>
-                <span id="current-time-label" style={{ fontWeight: 700, color: '#f59e0b', fontFamily: 'monospace', fontSize: '11.5px' }}>
+            <div style={{ marginBottom: 16, borderBottom: '1px solid rgba(255, 255, 255, 0.08)', paddingBottom: 16 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                <span style={{ color: '#9ca3af', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>TIME</span>
+                <span id="current-time-label" style={{ fontWeight: 600, color: '#38bdf8', fontFamily: 'monospace', fontSize: '11px' }}>
                   {currentTime ? `${currentTime.substring(0, 10)} (Day ${timeIndex + 1}/${timeSteps.length})` : 'Loading...'}
                 </span>
               </div>
@@ -1130,30 +1257,29 @@ export default function App() {
                 step={1}
                 value={timeIndex}
                 onChange={(e) => setTimeIndex(Number(e.target.value))}
-                style={{ width: '100%', cursor: 'pointer', accentColor: '#38bdf8' }}
+                style={{ width: '100%', cursor: 'pointer' }}
               />
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: '#64748b', marginTop: 2 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: '#6b7280', marginTop: 3 }}>
                 <span>{timeSteps[0]?.substring(0, 10)}</span>
                 <span>{timeSteps[timeSteps.length - 1]?.substring(0, 10)}</span>
               </div>
-              <div style={{ display: 'flex', gap: '6px', marginTop: 6, alignItems: 'center' }}>
+              <div style={{ display: 'flex', gap: '6px', marginTop: 8, alignItems: 'center' }}>
                 <button
                   id="play-button"
                   type="button"
                   onClick={() => setIsPlaying(!isPlaying)}
                   style={{
                     flex: 2,
-                    padding: '5px 8px',
-                    fontWeight: 700,
+                    padding: '6px 8px',
+                    fontWeight: 600,
                     fontSize: '11.5px',
                     cursor: 'pointer',
-                    background: isPlaying
-                      ? 'linear-gradient(135deg, rgba(239, 68, 68, 0.25), rgba(185, 28, 28, 0.35))'
-                      : 'linear-gradient(135deg, rgba(14, 165, 233, 0.25), rgba(2, 132, 199, 0.35))',
-                    border: isPlaying ? '1px solid #f87171' : '1px solid #38bdf8',
-                    borderRadius: '6px',
-                    color: '#fff',
-                    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.3)',
+                    background: isPlaying ? '#28282b' : '#0284c7',
+                    border: isPlaying ? '1px solid rgba(255, 255, 255, 0.15)' : '1px solid #38bdf8',
+                    borderRadius: '5px',
+                    color: isPlaying ? '#f87171' : '#fff',
+                    boxShadow: isPlaying ? 'none' : '0 2px 8px rgba(2, 132, 199, 0.35)',
+                    transition: 'all 0.15s ease',
                   }}
                 >
                   {isPlaying ? '⏸ Pause Animation' : '▶ Play Animation'}
@@ -1164,13 +1290,14 @@ export default function App() {
                   onClick={() => setTimeIndex((prev) => (prev > 0 ? prev - 1 : timeSteps.length - 1))}
                   style={{
                     flex: 1,
-                    padding: '5px 6px',
+                    padding: '6px 6px',
                     fontSize: '11px',
                     cursor: 'pointer',
-                    background: 'rgba(30, 41, 59, 0.65)',
-                    border: '1px solid rgba(100, 116, 139, 0.3)',
-                    borderRadius: '6px',
-                    color: '#cbd5e1',
+                    background: 'transparent',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    borderRadius: '5px',
+                    color: '#d1d5db',
+                    transition: 'all 0.15s ease',
                   }}
                   title="Previous Day"
                 >
@@ -1182,13 +1309,14 @@ export default function App() {
                   onClick={() => setTimeIndex((prev) => (prev < timeSteps.length - 1 ? prev + 1 : 0))}
                   style={{
                     flex: 1,
-                    padding: '5px 6px',
+                    padding: '6px 6px',
                     fontSize: '11px',
                     cursor: 'pointer',
-                    background: 'rgba(30, 41, 59, 0.65)',
-                    border: '1px solid rgba(100, 116, 139, 0.3)',
-                    borderRadius: '6px',
-                    color: '#cbd5e1',
+                    background: 'transparent',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    borderRadius: '5px',
+                    color: '#d1d5db',
+                    transition: 'all 0.15s ease',
                   }}
                   title="Next Day"
                 >
@@ -1198,16 +1326,16 @@ export default function App() {
             </div>
 
             {/* Task 2: Colorbar Editor & Scale Controls */}
-            <div style={{ marginBottom: 12, borderBottom: '1px solid rgba(100, 116, 139, 0.2)', paddingBottom: 10 }}>
-              <div style={{ fontWeight: 700, fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.03em', marginBottom: 8, color: '#cbd5e1' }}>
-                {uiMode === 'forecaster' ? 'Colorbar & Scale Controls' : 'Colorbar Scale'}
+            <div style={{ marginBottom: 16, borderBottom: '1px solid rgba(255, 255, 255, 0.08)', paddingBottom: 16 }}>
+              <div style={{ fontWeight: 600, fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 10, color: '#9ca3af' }}>
+                {uiMode === 'forecaster' ? 'COLORBAR & SCALE CONTROLS' : 'COLORBAR SCALE'}
               </div>
 
               {uiMode === 'forecaster' && (
                 <div id="forecaster-colorbar-controls">
                   {/* Palette selector */}
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                    <label htmlFor="palette-select" style={{ fontSize: '11px', color: '#94a3b8' }}>Palette:</label>
+                    <label htmlFor="palette-select" style={{ fontSize: '11px', color: '#9ca3af' }}>Palette:</label>
                     <select
                       id="palette-select"
                       value={palette}
@@ -1215,10 +1343,10 @@ export default function App() {
                       style={{
                         fontSize: '11px',
                         padding: '4px 8px',
-                        borderRadius: '6px',
-                        border: '1px solid rgba(100, 116, 139, 0.4)',
-                        background: '#1e293b',
-                        color: '#f8fafc',
+                        borderRadius: '5px',
+                        border: '1px solid rgba(255, 255, 255, 0.12)',
+                        background: '#242426',
+                        color: '#f3f4f6',
                         width: '230px',
                         cursor: 'pointer',
                       }}
@@ -1232,7 +1360,7 @@ export default function App() {
                   {/* Min/Max Overrides */}
                   <div style={{ display: 'flex', alignItems: 'flex-end', gap: '6px', marginBottom: 8 }}>
                     <div style={{ flex: 1 }}>
-                      <label htmlFor="range-min-input" style={{ fontSize: '10px', color: '#94a3b8', display: 'block', marginBottom: 2 }}>
+                      <label htmlFor="range-min-input" style={{ fontSize: '10px', color: '#9ca3af', display: 'block', marginBottom: 3 }}>
                         Min ({unit}):
                       </label>
                       <input
@@ -1248,16 +1376,16 @@ export default function App() {
                           width: '100%',
                           fontSize: '11px',
                           padding: '4px 6px',
-                          background: '#1e293b',
-                          color: '#f8fafc',
-                          border: '1px solid rgba(100, 116, 139, 0.4)',
-                          borderRadius: '6px',
+                          background: '#1e1e1e',
+                          color: '#f3f4f6',
+                          border: '1px solid rgba(255, 255, 255, 0.12)',
+                          borderRadius: '5px',
                           fontFamily: 'monospace',
                         }}
                       />
                     </div>
                     <div style={{ flex: 1 }}>
-                      <label htmlFor="range-max-input" style={{ fontSize: '10px', color: '#94a3b8', display: 'block', marginBottom: 2 }}>
+                      <label htmlFor="range-max-input" style={{ fontSize: '10px', color: '#9ca3af', display: 'block', marginBottom: 3 }}>
                         Max ({unit}):
                       </label>
                       <input
@@ -1273,10 +1401,10 @@ export default function App() {
                           width: '100%',
                           fontSize: '11px',
                           padding: '4px 6px',
-                          background: '#1e293b',
-                          color: '#f8fafc',
-                          border: '1px solid rgba(100, 116, 139, 0.4)',
-                          borderRadius: '6px',
+                          background: '#1e1e1e',
+                          color: '#f3f4f6',
+                          border: '1px solid rgba(255, 255, 255, 0.12)',
+                          borderRadius: '5px',
                           fontFamily: 'monospace',
                         }}
                       />
@@ -1295,10 +1423,10 @@ export default function App() {
                           padding: '4px 8px',
                           height: '26px',
                           cursor: (customMin === null && customMax === null) ? 'default' : 'pointer',
-                          background: 'rgba(51, 65, 85, 0.65)',
-                          border: '1px solid rgba(100, 116, 139, 0.4)',
-                          borderRadius: '6px',
-                          color: '#e2e8f0',
+                          background: 'transparent',
+                          border: '1px solid rgba(255, 255, 255, 0.12)',
+                          borderRadius: '5px',
+                          color: '#9ca3af',
                           opacity: (customMin === null && customMax === null) ? 0.35 : 1,
                         }}
                         title="Reset to variable default range"
@@ -1330,12 +1458,12 @@ export default function App() {
                 </div>
               )}
 
-              {/* Dynamic WMS Legend Graphic */}
-              <div style={{ marginTop: 6, background: 'rgba(15, 23, 42, 0.7)', padding: '8px 10px', borderRadius: '8px', border: '1px solid rgba(56, 189, 248, 0.2)' }}>
+              {/* Dynamic WMS Legend Graphic with consistent decimal labels */}
+              <div style={{ marginTop: 8, background: '#242426', padding: '8px 10px', borderRadius: '6px', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', fontWeight: 600, marginBottom: 4 }}>
                   <span style={{ color: '#cbd5e1' }}>{currentVarConfig.display_name}:</span>
                   <span id="legend-range-label" style={{ color: '#38bdf8', fontFamily: 'monospace' }}>
-                    {effectiveMin} to {effectiveMax} {unit}
+                    {effectiveMin.toFixed(1)} to {effectiveMax.toFixed(1)} {unit}
                   </span>
                 </div>
                 <div style={{ margin: '6px 0' }}>
@@ -1344,25 +1472,25 @@ export default function App() {
                     key={`${activeVariable}-${palette}-${effectiveMin}-${effectiveMax}-${activeLogScale}`}
                     src={`/thredds/wms/amphan_bob_real/${activeVariable}?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetLegendGraphic&LAYERS=${activeVariable}&STYLES=${palette === 'default' ? '' : `default-scalar/${palette}`}&COLORSCALERANGE=${effectiveMin},${effectiveMax}${activeLogScale ? '&LOGSCALE=true' : ''}`}
                     alt="WMS Colorbar Legend"
-                    style={{ width: '100%', height: '16px', display: 'block', borderRadius: '4px', border: '1px solid rgba(100, 116, 139, 0.3)' }}
+                    style={{ width: '100%', height: '16px', display: 'block', borderRadius: '4px', border: '1px solid rgba(255, 255, 255, 0.1)' }}
                     onError={(e) => {
                       (e.target as HTMLImageElement).style.display = 'none';
                     }}
                   />
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: '#94a3b8', fontFamily: 'monospace' }}>
-                  <span id="legend-min-display">{effectiveMin} {unit}</span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: '#9ca3af', fontFamily: 'monospace' }}>
+                  <span id="legend-min-display">{effectiveMin.toFixed(1)} {unit}</span>
                   <span id="legend-mid-display">{((effectiveMin + effectiveMax) / 2).toFixed(1)} {unit}</span>
-                  <span id="legend-max-display">{effectiveMax} {unit}</span>
+                  <span id="legend-max-display">{effectiveMax.toFixed(1)} {unit}</span>
                 </div>
               </div>
             </div>
 
             {/* Task 3: Layer Opacity Control */}
-            <div style={{ marginBottom: 12, borderBottom: '1px solid rgba(100, 116, 139, 0.2)', paddingBottom: 10 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                <strong style={{ color: '#cbd5e1', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Layer Opacity:</strong>
-                <span id="opacity-label" style={{ fontWeight: 700, color: '#38bdf8', fontFamily: 'monospace', fontSize: '11.5px' }}>
+            <div style={{ marginBottom: 16, borderBottom: '1px solid rgba(255, 255, 255, 0.08)', paddingBottom: 16 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                <span style={{ color: '#9ca3af', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>LAYER OPACITY</span>
+                <span id="opacity-label" style={{ fontWeight: 600, color: '#38bdf8', fontFamily: 'monospace', fontSize: '11px' }}>
                   {Math.round(layerOpacity * 100)}%
                 </span>
               </div>
@@ -1380,15 +1508,15 @@ export default function App() {
                     layerRef.current.alpha = val;
                   }
                 }}
-                style={{ width: '100%', cursor: 'pointer', accentColor: '#38bdf8' }}
+                style={{ width: '100%', cursor: 'pointer' }}
               />
             </div>
 
             {/* Task 4: Vertical Exaggeration Control */}
-            <div style={{ marginBottom: 12, borderBottom: '1px solid rgba(100, 116, 139, 0.2)', paddingBottom: 10 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                <strong style={{ color: '#cbd5e1', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Vertical Exaggeration:</strong>
-                <span id="vertical-exaggeration-label" style={{ fontWeight: 700, color: '#38bdf8', fontFamily: 'monospace', fontSize: '11.5px' }}>
+            <div style={{ marginBottom: 16, borderBottom: '1px solid rgba(255, 255, 255, 0.08)', paddingBottom: 16 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                <span style={{ color: '#9ca3af', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>VERTICAL EXAGGERATION</span>
+                <span id="vertical-exaggeration-label" style={{ fontWeight: 600, color: '#38bdf8', fontFamily: 'monospace', fontSize: '11px' }}>
                   {verticalExaggeration.toFixed(1)}×
                 </span>
               </div>
@@ -1410,14 +1538,14 @@ export default function App() {
                     }
                   }
                 }}
-                style={{ width: '100%', cursor: 'pointer', accentColor: '#38bdf8' }}
+                style={{ width: '100%', cursor: 'pointer' }}
               />
-              <div style={{ fontSize: '10px', color: '#64748b', marginTop: 3, lineHeight: 1.35 }}>
+              <div style={{ fontSize: '10px', color: '#6b7280', marginTop: 4, lineHeight: 1.35 }}>
                 Exaggerates 3D seafloor bathymetry and coastal relief across the Bay of Bengal basin.
               </div>
             </div>
 
-            {/* Stage 6b: Drill into 3D Volumetric View */}
+            {/* Stage 6b: Drill into 3D Volumetric View (Task 3: Subdued secondary button when active) */}
             <div style={{ paddingTop: 4 }}>
               <button
                 id="drill-3d-button"
@@ -1427,24 +1555,22 @@ export default function App() {
                 style={{
                   width: '100%',
                   padding: '9px 12px',
-                  fontWeight: 700,
-                  fontSize: '12.5px',
+                  fontWeight: 600,
+                  fontSize: '12px',
                   cursor: currentTime ? 'pointer' : 'not-allowed',
-                  background: show3DOverlay
-                    ? 'linear-gradient(135deg, #e11d48, #be123c)'
-                    : 'linear-gradient(135deg, #0284c7, #0369a1)',
-                  color: '#fff',
-                  border: show3DOverlay ? '1px solid #f43f5e' : '1px solid #38bdf8',
-                  borderRadius: '8px',
-                  boxShadow: '0 4px 14px rgba(2, 132, 199, 0.4)',
-                  letterSpacing: '0.03em',
+                  background: show3DOverlay ? '#28282b' : '#0284c7',
+                  color: show3DOverlay ? '#e5e7eb' : '#ffffff',
+                  border: show3DOverlay ? '1px solid rgba(255, 255, 255, 0.15)' : '1px solid #38bdf8',
+                  borderRadius: '5px',
+                  boxShadow: show3DOverlay ? 'none' : '0 2px 10px rgba(2, 132, 199, 0.35)',
+                  letterSpacing: '0.02em',
                   opacity: currentTime ? 1 : 0.5,
-                  transition: 'all 0.2s',
+                  transition: 'all 0.15s ease',
                 }}
               >
                 {show3DOverlay ? '✕ Close 3D Volumetric View' : '🌊 Drill into 3D Volumetric View'}
               </button>
-              <div style={{ fontSize: '10px', color: '#64748b', marginTop: 5, textAlign: 'center' as const }}>
+              <div style={{ fontSize: '10px', color: '#6b7280', marginTop: 6, textAlign: 'center' as const }}>
                 {show3DOverlay ? 'Showing 3D ocean temperature volume with thermal bloom' : 'Opens 3D temperature volume (84–90°E, 14–18°N, 0–200m)'}
               </div>
             </div>
@@ -1452,41 +1578,42 @@ export default function App() {
         )}
       </div>
 
-      {/* Profile Popup (Stage 7b Glassmorphic Dark Layout) */}
+      {/* Profile Popup (Task 4: Frosted Glassmorphic Dark Layout with External Legend) */}
       {(selectedProfile || loadingProfile) && (
         <div
           id="profile-popup"
+          className="no-scrollbar"
           style={{
             position: 'absolute',
             bottom: 20,
             right: 20,
             zIndex: 9999,
-            background: 'rgba(15, 23, 42, 0.92)',
-            backdropFilter: 'blur(20px)',
-            WebkitBackdropFilter: 'blur(20px)',
+            background: 'rgba(30, 30, 30, 0.94)',
+            backdropFilter: 'blur(16px)',
+            WebkitBackdropFilter: 'blur(16px)',
             padding: '16px 18px',
-            border: '1px solid rgba(56, 189, 248, 0.35)',
-            borderRadius: '14px',
-            color: '#f8fafc',
+            border: '1px solid rgba(255, 255, 255, 0.08)',
+            borderRadius: '8px',
+            color: '#f3f4f6',
             width: '400px',
-            boxShadow: '0 16px 40px rgba(0, 0, 0, 0.6)',
+            boxShadow: '0 16px 40px rgba(0, 0, 0, 0.65)',
             maxHeight: '620px',
             overflowY: 'auto',
             fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
           }}
         >
           {loadingProfile ? (
-            <div style={{ padding: '20px', textAlign: 'center', color: '#38bdf8', fontSize: '13px' }}>
+            <div style={{ padding: '20px', textAlign: 'center', color: '#38bdf8', fontSize: '12px' }}>
               ⏳ Loading profile data from /api/instrument/...
             </div>
           ) : selectedProfile ? (
             <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                 <div>
-                  <h3 style={{ margin: 0, fontSize: '13.5px', fontWeight: 700, letterSpacing: '0.03em', textTransform: 'uppercase', color: '#f8fafc' }}>
+                  <h3 style={{ margin: 0, fontSize: '13px', fontWeight: 700, letterSpacing: '0.03em', textTransform: 'uppercase', color: '#f3f4f6' }}>
                     {selectedProfile.instrument_type.toUpperCase()} • {selectedProfile.instrument_id}
                   </h3>
-                  <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: 2 }}>
+                  <div style={{ fontSize: '10.5px', color: '#9ca3af', marginTop: 2 }}>
                     {selectedProfile.time.substring(0, 10)} | {selectedProfile.lat.toFixed(4)}°N, {selectedProfile.lon.toFixed(4)}°E
                   </div>
                 </div>
@@ -1495,23 +1622,61 @@ export default function App() {
                   type="button"
                   onClick={() => setSelectedProfile(null)}
                   style={{
-                    background: 'rgba(255, 255, 255, 0.1)',
-                    border: '1px solid rgba(255, 255, 255, 0.2)',
-                    borderRadius: '6px',
-                    color: '#fff',
-                    width: '28px',
-                    height: '28px',
+                    background: 'transparent',
+                    border: 'none',
+                    color: '#9ca3af',
+                    fontSize: '14px',
                     cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '13px',
-                    fontWeight: 700,
+                    padding: '2px 4px',
+                    lineHeight: 1,
                   }}
                   title="Close Profile Popup"
                 >
                   ✕
                 </button>
+              </div>
+
+              {/* Task 4: Clean horizontal legend row above the chart */}
+              <div
+                style={{
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  gap: '6px 14px',
+                  alignItems: 'center',
+                  marginBottom: 8,
+                  fontSize: '10.5px',
+                  padding: '6px 10px',
+                  background: '#242426',
+                  borderRadius: '5px',
+                  border: '1px solid rgba(255, 255, 255, 0.06)',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <span style={{ width: 10, height: 3, background: '#f87171', borderRadius: 1 }} />
+                  <span style={{ color: '#f87171', fontWeight: 600 }}>Temp (°C)</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <span style={{ width: 10, height: 3, background: '#38bdf8', borderRadius: 1 }} />
+                  <span style={{ color: '#38bdf8', fontWeight: 600 }}>Salinity (PSU)</span>
+                </div>
+                {selectedProfile.data.some((d) => d.chlorophyll !== undefined) && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                    <span style={{ width: 10, height: 3, background: '#4ade80', borderRadius: 1 }} />
+                    <span style={{ color: '#4ade80', fontWeight: 600 }}>Chl-a (mg/m³)</span>
+                  </div>
+                )}
+                {selectedProfile.data.some((d) => d.current_u !== undefined) && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                    <span style={{ width: 10, height: 3, background: '#fb923c', borderRadius: 1 }} />
+                    <span style={{ color: '#fb923c', fontWeight: 600 }}>Current U (m/s)</span>
+                  </div>
+                )}
+                {selectedProfile.data.some((d) => d.current_v !== undefined) && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                    <span style={{ width: 10, height: 3, background: '#c084fc', borderRadius: 1 }} />
+                    <span style={{ color: '#c084fc', fontWeight: 600 }}>Current V (m/s)</span>
+                  </div>
+                )}
               </div>
 
               <Plot
@@ -1566,49 +1731,50 @@ export default function App() {
                 ].filter((trace) => trace.x.length > 0)}
                 layout={{
                   width: 360,
-                  height: 380,
-                  margin: { l: 50, r: 20, t: 35, b: 35 },
+                  height: 350,
+                  margin: { l: 55, r: 25, t: 35, b: 35 },
                   paper_bgcolor: 'rgba(0, 0, 0, 0)',
-                  plot_bgcolor: 'rgba(15, 23, 42, 0.7)',
+                  plot_bgcolor: 'rgba(24, 24, 27, 0.7)',
                   font: { color: '#cbd5e1', family: 'Inter, system-ui, sans-serif', size: 10 },
                   yaxis: {
-                    title: 'Depth (m)',
+                    title: { text: 'Depth', font: { color: '#9ca3af', size: 10.5 } },
                     autorange: 'reversed',
-                    color: '#94a3b8',
-                    gridcolor: 'rgba(100, 116, 139, 0.2)',
-                    zerolinecolor: 'rgba(100, 116, 139, 0.3)',
+                    color: '#9ca3af',
+                    ticksuffix: ' m',
+                    tickfont: { color: '#9ca3af', size: 9 },
+                    showgrid: true,
+                    gridcolor: 'rgba(255, 255, 255, 0.08)',
+                    griddash: 'dash',
+                    zeroline: false,
                   },
                   xaxis: {
-                    title: 'Temp (°C)',
+                    title: { text: 'Temp (°C)', font: { color: '#f87171', size: 10 } },
                     side: 'bottom',
                     color: '#f87171',
-                    showgrid: false,
+                    tickfont: { color: '#f87171', size: 9 },
                     tickcolor: '#f87171',
+                    showgrid: false,
                   },
                   xaxis2: {
-                    title: 'Salinity (PSU)',
+                    title: { text: 'Salinity (PSU)', font: { color: '#38bdf8', size: 10 } },
                     side: 'top',
                     overlaying: 'x',
                     color: '#38bdf8',
-                    showgrid: false,
+                    tickfont: { color: '#38bdf8', size: 9 },
                     tickcolor: '#38bdf8',
+                    showgrid: false,
                   },
                   xaxis3: {
-                    title: 'Chl-a',
+                    title: { text: 'Chl-a', font: { color: '#4ade80', size: 10 } },
                     side: 'top',
                     overlaying: 'x',
                     color: '#4ade80',
+                    tickfont: { color: '#4ade80', size: 9 },
+                    tickcolor: '#4ade80',
                     showgrid: false,
                     position: 0.88,
-                    tickcolor: '#4ade80',
                   },
-                  showlegend: true,
-                  legend: {
-                    orientation: 'h',
-                    y: -0.22,
-                    font: { color: '#cbd5e1', size: 10 },
-                    bgcolor: 'rgba(0, 0, 0, 0)',
-                  },
+                  showlegend: false,
                 }}
                 config={{ displayModeBar: false, responsive: true }}
               />
@@ -1617,7 +1783,7 @@ export default function App() {
         </div>
       )}
 
-      {/* Legend (Stage 7b Glassmorphic Dark Layout) */}
+      {/* Legend (Task 1 & Task 5: Unified Neutral Dark Card) */}
       <div
         id="instruments-legend"
         style={{
@@ -1625,37 +1791,37 @@ export default function App() {
           bottom: 20,
           left: 424,
           zIndex: 9999,
-          background: 'rgba(15, 23, 42, 0.88)',
+          background: 'rgba(30, 30, 30, 0.94)',
           backdropFilter: 'blur(16px)',
           WebkitBackdropFilter: 'blur(16px)',
           padding: '10px 14px',
-          border: '1px solid rgba(56, 189, 248, 0.28)',
-          borderRadius: '12px',
-          color: '#f8fafc',
+          border: '1px solid rgba(255, 255, 255, 0.08)',
+          borderRadius: '6px',
+          color: '#f3f4f6',
           boxShadow: '0 8px 24px rgba(0, 0, 0, 0.5)',
           fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
-          fontSize: '11.5px',
+          fontSize: '11px',
         }}
       >
-        <div style={{ fontWeight: 700, fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.04em', color: '#94a3b8', marginBottom: 6 }}>
+        <div style={{ fontWeight: 600, fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#9ca3af', marginBottom: 6 }}>
           In-Situ Instruments
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span style={{ color: '#facc15', fontSize: '14px', textShadow: '0 0 6px rgba(250, 204, 21, 0.6)' }}>●</span>
-            <span style={{ color: '#e2e8f0' }}>Argo Float</span>
+            <span style={{ color: '#fbbf24', fontSize: '13px' }}>●</span>
+            <span style={{ color: '#d1d5db' }}>Argo Float</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span style={{ color: '#22d3ee', fontSize: '14px', textShadow: '0 0 6px rgba(34, 211, 238, 0.6)' }}>●</span>
-            <span style={{ color: '#e2e8f0' }}>Glider</span>
+            <span style={{ color: '#06b6d4', fontSize: '13px' }}>●</span>
+            <span style={{ color: '#d1d5db' }}>Glider</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span style={{ color: '#f87171', fontSize: '14px', textShadow: '0 0 6px rgba(248, 113, 113, 0.6)' }}>●</span>
-            <span style={{ color: '#e2e8f0' }}>Moored Buoy</span>
+            <span style={{ color: '#f43f5e', fontSize: '13px' }}>●</span>
+            <span style={{ color: '#d1d5db' }}>Moored Buoy</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span style={{ color: '#c084fc', fontSize: '14px', textShadow: '0 0 6px rgba(192, 132, 252, 0.6)' }}>●</span>
-            <span style={{ color: '#e2e8f0' }}>ADCP</span>
+            <span style={{ color: '#a855f7', fontSize: '13px' }}>●</span>
+            <span style={{ color: '#d1d5db' }}>ADCP</span>
           </div>
         </div>
       </div>

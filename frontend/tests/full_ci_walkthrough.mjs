@@ -51,8 +51,16 @@ async function runFullCiWalkthrough() {
   console.log('\n[COLD START] Navigating to http://localhost:5173/ ...');
   await page.goto('http://localhost:5173/', { waitUntil: 'domcontentloaded' });
   await page.waitForSelector('#wms-panel', { timeout: 12000 });
-  await page.waitForTimeout(3500);
   console.log('✓ Base application HUD & Cesium Canvas successfully mounted.');
+
+  // Stage UI Polish: Expand and pin sidebar so all controls are clickable during test
+  await page.evaluate(() => {
+    if (window.setSidebarOpen) {
+      window.setSidebarOpen(true, true);
+    }
+  });
+  await page.waitForTimeout(600);
+
 
   // =========================================================================
   // STEP 1: Variable Switching
