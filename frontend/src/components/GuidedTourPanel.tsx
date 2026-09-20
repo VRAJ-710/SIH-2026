@@ -128,7 +128,7 @@ export const GuidedTourPanel: React.FC<GuidedTourPanelProps> = ({
         <div style={{ fontSize: '11px', color: '#9ca3af', display: 'flex', gap: 8, alignItems: 'center', marginBottom: 16 }}>
           <span>Date: <strong style={{ color: '#e5e7eb', fontWeight: 600 }}>{currentBeat.targetDate}</strong></span>
           <span>•</span>
-          <span>Layer: <strong style={{ color: '#38bdf8', fontWeight: 600 }}>Surface Temperature</strong></span>
+          <span>Layer: <strong style={{ color: '#e5e7eb', fontWeight: 600 }}>Surface Temperature</strong></span>
         </div>
       </div>
 
@@ -176,13 +176,13 @@ export const GuidedTourPanel: React.FC<GuidedTourPanelProps> = ({
               width: '100%',
               padding: '8px 12px',
               fontSize: '12px',
-              fontWeight: 600,
+              fontWeight: 500,
               cursor: 'pointer',
-              background: '#0284c7',
+              background: 'transparent',
               color: '#ffffff',
-              border: '1px solid #38bdf8',
+              border: '1px solid rgba(255, 255, 255, 0.18)',
               borderRadius: '5px',
-              boxShadow: '0 2px 10px rgba(2, 132, 199, 0.35)',
+              boxShadow: 'none',
               transition: 'all 0.15s ease',
               display: 'flex',
               alignItems: 'center',
@@ -235,13 +235,13 @@ export const GuidedTourPanel: React.FC<GuidedTourPanelProps> = ({
             flex: 1.4,
             padding: '7px 12px',
             fontSize: '11.5px',
-            fontWeight: 600,
+            fontWeight: 500,
             cursor: 'pointer',
-            background: isPlaying ? '#28282b' : '#0284c7',
-            border: isPlaying ? '1px solid rgba(255, 255, 255, 0.2)' : '1px solid #38bdf8',
+            background: isPlaying ? '#28282b' : 'transparent',
+            border: isPlaying ? '1px solid rgba(255, 255, 255, 0.2)' : '1px solid rgba(255, 255, 255, 0.12)',
             borderRadius: '5px',
-            color: '#ffffff',
-            boxShadow: isPlaying ? 'none' : '0 2px 8px rgba(2, 132, 199, 0.35)',
+            color: isPlaying ? '#f87171' : '#e5e7eb',
+            boxShadow: 'none',
             transition: 'all 0.15s ease',
           }}
         >

@@ -41,21 +41,29 @@ async function captureScreenshots() {
   console.log('1. Capturing Sidebar Collapsed state...');
   await page.evaluate(() => {
     if (window.setSidebarOpen) {
-      window.setSidebarOpen(false, false);
+      window.setSidebarOpen(false);
     }
   });
   await page.waitForTimeout(1000);
   await saveShot('stage_ui_polish_20260920_sidebar_collapsed');
 
-  // 2. Sidebar Expanded View
-  console.log('2. Capturing Sidebar Expanded state with neutral dark slate theme...');
-  await page.evaluate(() => {
-    if (window.setSidebarOpen) {
-      window.setSidebarOpen(true, true);
-    }
-  });
+  // 2. Sidebar Expanded View (Hover to open)
+  console.log('2. Hovering over #sidebar-collapsed-tab to open sidebar...');
+  await page.hover('#sidebar-collapsed-tab');
   await page.waitForTimeout(1000);
   await saveShot('stage_ui_polish_20260920_sidebar_expanded');
+
+  // Test closing via X button
+  console.log('Testing close via #collapse-sidebar-btn...');
+  await page.click('#collapse-sidebar-btn');
+  await page.waitForTimeout(800);
+  const isTabVisibleAfterClose = await page.isVisible('#sidebar-collapsed-tab');
+  console.log(`  Sidebar collapsed successfully, tab visible: ${isTabVisibleAfterClose}`);
+
+  // Re-open by hover
+  console.log('Re-opening sidebar by hover...');
+  await page.hover('#sidebar-collapsed-tab');
+  await page.waitForTimeout(800);
 
   // 3. Guided Tour View
   console.log('3. Capturing Guided Tour panel...');

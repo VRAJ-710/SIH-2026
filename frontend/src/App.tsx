@@ -171,7 +171,6 @@ export default function App() {
 
   // Stage UI Polish (Task 8): Collapsible Sidebar State with GSAP smooth transition
   const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(false);
-  const [isSidebarPinned, setIsSidebarPinned] = useState<boolean>(false);
   const sidebarRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -831,9 +830,8 @@ export default function App() {
     (window as any).exitTour = handleExitTour;
     (window as any).setTourBeat = activateTourBeat;
     (window as any).setUiMode = setUiMode;
-    (window as any).setSidebarOpen = (open: boolean, pin = false) => {
+    (window as any).setSidebarOpen = (open: boolean) => {
       setIsSidebarOpen(open);
-      setIsSidebarPinned(pin);
     };
     return () => {
       delete (window as any).fetchProfile;
@@ -847,14 +845,11 @@ export default function App() {
 
   return (
     <div style={{ position: 'relative', width: '100vw', height: '100vh', overflow: 'hidden' }}>
-      {/* Collapsed Edge Tab / Icon (Task 8: Minimal footprint by default) */}
+      {/* Floating Left Tab (Visible when sidebar is collapsed) */}
       <button
         id="sidebar-collapsed-tab"
         type="button"
-        onClick={() => {
-          setIsSidebarOpen(true);
-          setIsSidebarPinned(true);
-        }}
+        onClick={() => setIsSidebarOpen(true)}
         onMouseEnter={() => setIsSidebarOpen(true)}
         style={{
           position: 'absolute',
@@ -889,17 +884,11 @@ export default function App() {
         </span>
       </button>
 
-      {/* Top Left WMS Panel (Tasks 1 & 8: Neutral Dark Slate HUD with GSAP Expand/Collapse) */}
+      {/* Top Left WMS Panel (Hover to reveal, click X to close) */}
       <div
         id="wms-panel"
         ref={sidebarRef}
         className="no-scrollbar"
-        onMouseEnter={() => setIsSidebarOpen(true)}
-        onMouseLeave={() => {
-          if (!isSidebarPinned) {
-            setIsSidebarOpen(false);
-          }
-        }}
         style={{
           position: 'absolute',
           top: 16,
@@ -931,17 +920,17 @@ export default function App() {
                 Cyclone Amphan: GLORYS12
               </div>
               <div style={{ fontSize: '10px', color: '#9ca3af', letterSpacing: '0.02em', display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
-                <span>Bay of Bengal (8–23°N, 82–92°E) • Live ncWMS</span>
+                <span title="Coordinates: 8–23°N, 82–92°E" style={{ cursor: 'default' }}>Bay of Bengal • Live ncWMS</span>
                 <span
                   id="basemap-status-badge"
                   style={{
                     padding: '1px 6px',
                     borderRadius: '4px',
                     fontSize: '9.5px',
-                    fontWeight: 600,
-                    background: basemapStatus === 'ion' ? 'rgba(56, 189, 248, 0.12)' : 'rgba(245, 158, 11, 0.15)',
-                    color: basemapStatus === 'ion' ? '#38bdf8' : '#f59e0b',
-                    border: basemapStatus === 'ion' ? '1px solid rgba(56, 189, 248, 0.25)' : '1px solid rgba(245, 158, 11, 0.3)',
+                    fontWeight: 500,
+                    background: 'rgba(255, 255, 255, 0.05)',
+                    color: '#9ca3af',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
                   }}
                 >
                   {basemapStatus === 'ion' ? '🛰️ Ion Basemap' : '🌍 Offline Basemap (NaturalEarthII)'}
@@ -949,43 +938,27 @@ export default function App() {
               </div>
             </div>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <button
-              id="pin-sidebar-btn"
-              type="button"
-              onClick={() => setIsSidebarPinned(!isSidebarPinned)}
-              style={{
-                background: isSidebarPinned ? 'rgba(56, 189, 248, 0.15)' : 'transparent',
-                border: isSidebarPinned ? '1px solid #38bdf8' : '1px solid rgba(255, 255, 255, 0.12)',
-                borderRadius: '4px',
-                color: isSidebarPinned ? '#38bdf8' : '#9ca3af',
-                fontSize: '10px',
-                fontWeight: 600,
-                padding: '2px 6px',
-                cursor: 'pointer',
-                transition: 'all 0.15s ease',
-              }}
-              title={isSidebarPinned ? 'Unpin Sidebar (Auto-collapse on mouse leave)' : 'Pin Sidebar (Keep open)'}
-            >
-              {isSidebarPinned ? '📌 Pinned' : '📌 Pin'}
-            </button>
+          <div>
             <button
               id="collapse-sidebar-btn"
               type="button"
-              onClick={() => {
-                setIsSidebarPinned(false);
-                setIsSidebarOpen(false);
-              }}
+              onClick={() => setIsSidebarOpen(false)}
               style={{
                 background: 'transparent',
-                border: 'none',
+                border: '1px solid rgba(255, 255, 255, 0.12)',
+                borderRadius: '5px',
                 color: '#9ca3af',
-                fontSize: '14px',
-                padding: '2px 4px',
+                fontSize: '13px',
+                width: '24px',
+                height: '24px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
                 cursor: 'pointer',
                 lineHeight: 1,
+                transition: 'all 0.15s ease',
               }}
-              title="Collapse Sidebar"
+              title="Close Sidebar (✕)"
             >
               ✕
             </button>
@@ -1047,12 +1020,12 @@ export default function App() {
                 width: '100%',
                 padding: '7px 10px',
                 fontSize: '11px',
-                fontWeight: 600,
+                fontWeight: 500,
                 cursor: 'pointer',
                 background: 'transparent',
                 border: '1px solid rgba(255, 255, 255, 0.12)',
                 borderRadius: '5px',
-                color: '#38bdf8',
+                color: '#e5e7eb',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -1090,14 +1063,14 @@ export default function App() {
               style={{
                 width: '100%',
                 padding: '8px 12px',
-                fontWeight: 600,
+                fontWeight: 500,
                 fontSize: '11.5px',
                 cursor: 'pointer',
-                background: '#0284c7',
+                background: 'transparent',
                 color: '#ffffff',
-                border: '1px solid #38bdf8',
+                border: '1px solid rgba(255, 255, 255, 0.15)',
                 borderRadius: '5px',
-                boxShadow: '0 2px 8px rgba(2, 132, 199, 0.35)',
+                boxShadow: 'none',
                 transition: 'all 0.15s ease',
               }}
             >
@@ -1107,7 +1080,7 @@ export default function App() {
         )}
 
         {loadingCapabilities ? (
-          <div style={{ padding: '12px 0', color: '#38bdf8', fontSize: '12px' }}>
+          <div style={{ padding: '12px 0', color: '#9ca3af', fontSize: '12px' }}>
             ⏳ Loading available depth levels & time steps from TDS...
           </div>
         ) : (
@@ -1118,7 +1091,7 @@ export default function App() {
                 <span style={{ color: '#9ca3af', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>
                   {uiMode === 'public' ? 'OCEAN PARAMETER' : 'VARIABLE'}
                 </span>
-                <span id="active-variable-label" style={{ fontWeight: 600, color: '#38bdf8', fontSize: '11px' }}>
+                <span id="active-variable-label" style={{ display: 'none' }}>
                   {currentVarConfig.display_name}
                 </span>
               </div>
@@ -1159,7 +1132,7 @@ export default function App() {
             <div style={{ marginBottom: 16, borderBottom: '1px solid rgba(255, 255, 255, 0.08)', paddingBottom: 16 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
                 <span style={{ color: '#9ca3af', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>DEPTH</span>
-                <span id="current-depth-label" style={{ fontWeight: 600, color: '#38bdf8', fontFamily: 'monospace', fontSize: '11px' }}>
+                <span id="current-depth-label" style={{ display: 'none' }}>
                   {currentDepth ? `${currentDepth.depthMeters.toFixed(1)} m (Level ${depthIndex + 1}/${depthLevels.length})` : 'Loading...'}
                 </span>
               </div>
@@ -1245,7 +1218,7 @@ export default function App() {
             <div style={{ marginBottom: 16, borderBottom: '1px solid rgba(255, 255, 255, 0.08)', paddingBottom: 16 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
                 <span style={{ color: '#9ca3af', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>TIME</span>
-                <span id="current-time-label" style={{ fontWeight: 600, color: '#38bdf8', fontFamily: 'monospace', fontSize: '11px' }}>
+                <span id="current-time-label" style={{ fontWeight: 500, color: '#e5e7eb', fontFamily: 'monospace', fontSize: '11px' }}>
                   {currentTime ? `${currentTime.substring(0, 10)} (Day ${timeIndex + 1}/${timeSteps.length})` : 'Loading...'}
                 </span>
               </div>
@@ -1271,14 +1244,14 @@ export default function App() {
                   style={{
                     flex: 2,
                     padding: '6px 8px',
-                    fontWeight: 600,
+                    fontWeight: 500,
                     fontSize: '11.5px',
                     cursor: 'pointer',
-                    background: isPlaying ? '#28282b' : '#0284c7',
-                    border: isPlaying ? '1px solid rgba(255, 255, 255, 0.15)' : '1px solid #38bdf8',
+                    background: isPlaying ? '#28282b' : 'transparent',
+                    border: isPlaying ? '1px solid rgba(255, 255, 255, 0.2)' : '1px solid rgba(255, 255, 255, 0.12)',
                     borderRadius: '5px',
-                    color: isPlaying ? '#f87171' : '#fff',
-                    boxShadow: isPlaying ? 'none' : '0 2px 8px rgba(2, 132, 199, 0.35)',
+                    color: isPlaying ? '#f87171' : '#e5e7eb',
+                    boxShadow: 'none',
                     transition: 'all 0.15s ease',
                   }}
                 >
@@ -1460,13 +1433,10 @@ export default function App() {
 
               {/* Dynamic WMS Legend Graphic with consistent decimal labels */}
               <div style={{ marginTop: 8, background: '#242426', padding: '8px 10px', borderRadius: '6px', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', fontWeight: 600, marginBottom: 4 }}>
-                  <span style={{ color: '#cbd5e1' }}>{currentVarConfig.display_name}:</span>
-                  <span id="legend-range-label" style={{ color: '#38bdf8', fontFamily: 'monospace' }}>
-                    {effectiveMin.toFixed(1)} to {effectiveMax.toFixed(1)} {unit}
-                  </span>
-                </div>
-                <div style={{ margin: '6px 0' }}>
+                <span id="legend-range-label" style={{ display: 'none' }}>
+                  {effectiveMin.toFixed(1)} to {effectiveMax.toFixed(1)} {unit}
+                </span>
+                <div style={{ marginBottom: 6 }}>
                   <img
                     id="wms-legend-img"
                     key={`${activeVariable}-${palette}-${effectiveMin}-${effectiveMax}-${activeLogScale}`}
@@ -1490,7 +1460,7 @@ export default function App() {
             <div style={{ marginBottom: 16, borderBottom: '1px solid rgba(255, 255, 255, 0.08)', paddingBottom: 16 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
                 <span style={{ color: '#9ca3af', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>LAYER OPACITY</span>
-                <span id="opacity-label" style={{ fontWeight: 600, color: '#38bdf8', fontFamily: 'monospace', fontSize: '11px' }}>
+                <span id="opacity-label" style={{ fontWeight: 500, color: '#e5e7eb', fontFamily: 'monospace', fontSize: '11px' }}>
                   {Math.round(layerOpacity * 100)}%
                 </span>
               </div>
@@ -1515,8 +1485,29 @@ export default function App() {
             {/* Task 4: Vertical Exaggeration Control */}
             <div style={{ marginBottom: 16, borderBottom: '1px solid rgba(255, 255, 255, 0.08)', paddingBottom: 16 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                <span style={{ color: '#9ca3af', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>VERTICAL EXAGGERATION</span>
-                <span id="vertical-exaggeration-label" style={{ fontWeight: 600, color: '#38bdf8', fontFamily: 'monospace', fontSize: '11px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ color: '#9ca3af', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>VERTICAL EXAGGERATION</span>
+                  <span
+                    title="Exaggerates 3D seafloor bathymetry and coastal relief across the Bay of Bengal basin."
+                    style={{
+                      cursor: 'help',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      width: 13,
+                      height: 13,
+                      borderRadius: '50%',
+                      background: 'rgba(255, 255, 255, 0.08)',
+                      color: '#9ca3af',
+                      fontSize: '9.5px',
+                      fontWeight: 600,
+                      userSelect: 'none',
+                    }}
+                  >
+                    ℹ
+                  </span>
+                </div>
+                <span id="vertical-exaggeration-label" style={{ fontWeight: 500, color: '#e5e7eb', fontFamily: 'monospace', fontSize: '11px' }}>
                   {verticalExaggeration.toFixed(1)}×
                 </span>
               </div>
@@ -1540,9 +1531,6 @@ export default function App() {
                 }}
                 style={{ width: '100%', cursor: 'pointer' }}
               />
-              <div style={{ fontSize: '10px', color: '#6b7280', marginTop: 4, lineHeight: 1.35 }}>
-                Exaggerates 3D seafloor bathymetry and coastal relief across the Bay of Bengal basin.
-              </div>
             </div>
 
             {/* Stage 6b: Drill into 3D Volumetric View (Task 3: Subdued secondary button when active) */}
@@ -1555,14 +1543,14 @@ export default function App() {
                 style={{
                   width: '100%',
                   padding: '9px 12px',
-                  fontWeight: 600,
+                  fontWeight: 500,
                   fontSize: '12px',
                   cursor: currentTime ? 'pointer' : 'not-allowed',
-                  background: show3DOverlay ? '#28282b' : '#0284c7',
+                  background: show3DOverlay ? '#28282b' : 'transparent',
                   color: show3DOverlay ? '#e5e7eb' : '#ffffff',
-                  border: show3DOverlay ? '1px solid rgba(255, 255, 255, 0.15)' : '1px solid #38bdf8',
+                  border: show3DOverlay ? '1px solid rgba(255, 255, 255, 0.15)' : '1px solid rgba(255, 255, 255, 0.18)',
                   borderRadius: '5px',
-                  boxShadow: show3DOverlay ? 'none' : '0 2px 10px rgba(2, 132, 199, 0.35)',
+                  boxShadow: 'none',
                   letterSpacing: '0.02em',
                   opacity: currentTime ? 1 : 0.5,
                   transition: 'all 0.15s ease',
@@ -1570,9 +1558,6 @@ export default function App() {
               >
                 {show3DOverlay ? '✕ Close 3D Volumetric View' : '🌊 Drill into 3D Volumetric View'}
               </button>
-              <div style={{ fontSize: '10px', color: '#6b7280', marginTop: 6, textAlign: 'center' as const }}>
-                {show3DOverlay ? 'Showing 3D ocean temperature volume with thermal bloom' : 'Opens 3D temperature volume (84–90°E, 14–18°N, 0–200m)'}
-              </div>
             </div>
           </>
         )}
@@ -1783,48 +1768,51 @@ export default function App() {
         </div>
       )}
 
-      {/* Legend (Task 1 & Task 5: Unified Neutral Dark Card) */}
-      <div
-        id="instruments-legend"
-        style={{
-          position: 'absolute',
-          bottom: 20,
-          left: 424,
-          zIndex: 9999,
-          background: 'rgba(30, 30, 30, 0.94)',
-          backdropFilter: 'blur(16px)',
-          WebkitBackdropFilter: 'blur(16px)',
-          padding: '10px 14px',
-          border: '1px solid rgba(255, 255, 255, 0.08)',
-          borderRadius: '6px',
-          color: '#f3f4f6',
-          boxShadow: '0 8px 24px rgba(0, 0, 0, 0.5)',
-          fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
-          fontSize: '11px',
-        }}
-      >
-        <div style={{ fontWeight: 600, fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#9ca3af', marginBottom: 6 }}>
-          In-Situ Instruments
+      {/* In-Situ Instruments Legend (Relocated to top-right corner, compact footprint) */}
+      {!show3DOverlay && (
+        <div
+          id="instruments-legend"
+          style={{
+            position: 'absolute',
+            top: 16,
+            right: 16,
+            zIndex: 9990,
+            background: 'rgba(30, 30, 30, 0.94)',
+            backdropFilter: 'blur(16px)',
+            WebkitBackdropFilter: 'blur(16px)',
+            padding: '7px 10px',
+            border: '1px solid rgba(255, 255, 255, 0.08)',
+            borderRadius: '6px',
+            color: '#f3f4f6',
+            boxShadow: '0 8px 24px rgba(0, 0, 0, 0.45)',
+            fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
+            fontSize: '10px',
+            pointerEvents: 'auto',
+          }}
+        >
+          <div style={{ fontWeight: 600, fontSize: '9px', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#9ca3af', marginBottom: 4 }}>
+            Instruments
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+              <span style={{ color: '#fbbf24', fontSize: '9px', lineHeight: 1 }}>●</span>
+              <span style={{ color: '#d1d5db', fontSize: '10px' }}>Argo Float</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+              <span style={{ color: '#06b6d4', fontSize: '9px', lineHeight: 1 }}>●</span>
+              <span style={{ color: '#d1d5db', fontSize: '10px' }}>Glider</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+              <span style={{ color: '#f43f5e', fontSize: '9px', lineHeight: 1 }}>●</span>
+              <span style={{ color: '#d1d5db', fontSize: '10px' }}>Moored Buoy</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+              <span style={{ color: '#a855f7', fontSize: '9px', lineHeight: 1 }}>●</span>
+              <span style={{ color: '#d1d5db', fontSize: '10px' }}>ADCP</span>
+            </div>
+          </div>
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span style={{ color: '#fbbf24', fontSize: '13px' }}>●</span>
-            <span style={{ color: '#d1d5db' }}>Argo Float</span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span style={{ color: '#06b6d4', fontSize: '13px' }}>●</span>
-            <span style={{ color: '#d1d5db' }}>Glider</span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span style={{ color: '#f43f5e', fontSize: '13px' }}>●</span>
-            <span style={{ color: '#d1d5db' }}>Moored Buoy</span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span style={{ color: '#a855f7', fontSize: '13px' }}>●</span>
-            <span style={{ color: '#d1d5db' }}>ADCP</span>
-          </div>
-        </div>
-      </div>
+      )}
 
       {/* Stage 9: Guided Tour Panel */}
       {isTourActive && (

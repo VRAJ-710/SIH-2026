@@ -512,13 +512,13 @@ export default function VolumetricOverlay({ currentTime, onClose }: VolumetricOv
           <span style={{ color: '#f3f4f6', fontFamily: 'monospace' }}>32 × 32 × 16</span>
 
           <span style={{ fontSize: '10px', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 600 }}>Date</span>
-          <span id="overlay-date-label" style={{ color: '#38bdf8', fontWeight: 600, fontFamily: 'monospace' }}>{responseTime ? responseTime.substring(0, 10) : '...'}</span>
+          <span id="overlay-date-label" style={{ color: '#f3f4f6', fontWeight: 500, fontFamily: 'monospace' }}>{responseTime ? responseTime.substring(0, 10) : '...'}</span>
 
           <span style={{ fontSize: '10px', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 600 }}>Range</span>
           <span style={{ color: '#f3f4f6', fontFamily: 'monospace' }}>{valueRange.min.toFixed(1)}–{valueRange.max.toFixed(1)} °C</span>
 
           <span style={{ fontSize: '10px', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 600 }}>Land Mask</span>
-          <span id="overlay-mask-status" style={{ color: sentinelCount > 0 ? '#38bdf8' : '#9ca3af' }}>
+          <span id="overlay-mask-status" style={{ color: sentinelCount > 0 ? '#cbd5e1' : '#9ca3af' }}>
             {sentinelCount > 0 ? `${sentinelCount} masked cells transparent` : '100% Ocean (no land)'}
           </span>
         </div>
@@ -616,7 +616,7 @@ export default function VolumetricOverlay({ currentTime, onClose }: VolumetricOv
             <span style={{ color: '#9ca3af', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 600 }}>
               {mode === 'raymarch' ? 'Opacity Midpoint' : 'Isosurface Threshold'}
             </span>
-            <span id="current-threshold-label" style={{ fontFamily: 'monospace', color: '#38bdf8', fontWeight: 700 }}>
+            <span id="current-threshold-label" style={{ fontFamily: 'monospace', color: '#e5e7eb', fontWeight: 600 }}>
               {thresholdVal.toFixed(2)} °C
             </span>
           </div>
