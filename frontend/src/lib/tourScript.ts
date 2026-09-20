@@ -59,7 +59,7 @@ export const TOUR_BEATS: TourBeat[] = [
       rollDeg: 0,
     },
     caption:
-      'Feeding on the deep reservoir of heat, Cyclone Amphan rapidly intensified into a Category 5 Super Cyclonic Storm on May 18, generating sustained winds exceeding 260 km/h over the central Bay of Bengal.',
+      'Feeding on the deep reservoir of heat, Cyclone Amphan rapidly intensified into a Category 5 Super Cyclonic Storm on May 18, generating sustained winds exceeding 240 km/h over the central Bay of Bengal.',
     scienceNote:
       'Scientific Context: Rapid intensification occurs when tropical cyclones pass over areas of high Ocean Heat Content with minimal vertical wind shear. Surface waters remained warm enough to sustain explosive convection as Amphan tracked northward.',
   },
