@@ -316,6 +316,33 @@ def main():
     result = transform_to_point_schema(core_df, bgc_df)
 
     os.makedirs(OUTPUT_DIR, exist_ok=True)
+
+    # OFFLINE-RESILIENCE FIX (Stage Gap Closure):
+    # If the live ERDDAP fetch failed or returned empty data, do NOT overwrite
+    # the existing cached parquet with an empty file. Preserve the previously
+    # ingested dataset and warn clearly.
+    if result.empty and os.path.exists(OUTPUT_FILE):
+        existing_size = os.path.getsize(OUTPUT_FILE)
+        if existing_size > 0:
+            print()
+            print("=" * 60)
+            print("WARNING: Live ERDDAP fetch returned EMPTY data.")
+            print(f"Preserving existing cached output: {OUTPUT_FILE}")
+            print(f"Cached file size: {existing_size:,} bytes")
+            print("This is expected when running offline or when the")
+            print("Ifremer ERDDAP server is unreachable.")
+            print("=" * 60)
+
+            # Report the preserved file stats
+            preserved = pd.read_parquet(OUTPUT_FILE)
+            print(f"\nPreserved output: {OUTPUT_FILE}")
+            print(f"Rows:   {len(preserved)}")
+            print(f"Size:   {existing_size:,} bytes")
+            if not preserved.empty:
+                print(f"\nFloats: {preserved['instrument_id'].nunique()}")
+                print(f"Variables: {sorted(preserved['variable'].unique())}")
+            return OUTPUT_FILE
+
     result.to_parquet(OUTPUT_FILE, index=False)
 
     print(f"\nOutput: {OUTPUT_FILE}")

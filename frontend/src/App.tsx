@@ -540,6 +540,7 @@ export default function App() {
       if (inst.instrument_type === 'glider') color = Cesium.Color.fromCssColorString('#06b6d4');
       if (inst.instrument_type === 'buoy') color = Cesium.Color.fromCssColorString('#f43f5e');
       if (inst.instrument_type === 'adcp') color = Cesium.Color.fromCssColorString('#a855f7');
+      if (inst.instrument_type === 'ctd') color = Cesium.Color.fromCssColorString('#10b981');
 
       const isTargetInstrument = activeTourBeat?.instrumentId === inst.instrument_id;
 
@@ -1955,6 +1956,10 @@ export default function App() {
             <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
               <span style={{ color: '#a855f7', fontSize: '9px', lineHeight: 1 }}>●</span>
               <span style={{ color: '#d1d5db', fontSize: '10px' }}>ADCP</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+              <span style={{ color: '#10b981', fontSize: '9px', lineHeight: 1 }}>●</span>
+              <span style={{ color: '#d1d5db', fontSize: '10px' }}>CTD</span>
             </div>
           </div>
         </div>

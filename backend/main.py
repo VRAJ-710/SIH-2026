@@ -64,6 +64,7 @@ app.include_router(volume.router, prefix="/api")
 
 
 @app.get("/health", tags=["system"])
+@app.get("/api/health", tags=["system"])
 def health_check() -> dict[str, str]:
     """Simple health check endpoint."""
     return {"status": "ok", "service": "incois-backend"}

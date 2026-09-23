@@ -50,18 +50,24 @@ All grid ingestors must output CF-compliant NetCDF files. Dimension and variable
 
 Gridded ocean variables are cataloged and served via THREDDS Data Server (TDS) using a predictable URL structure.
 
-### TDS Dataset ID
+### TDS Dataset ID (Primary — Real GLORYS12 Data)
+```
+amphan_bob_real/{variable}
+```
+Where `{variable}` is one of the grid variables: `temperature`, `salinity`, `current_u`, or `current_v`.
+
+### TDS Dataset ID (Stage 1 Reference — Synthetic Sample)
 ```
 amphan_bob/{variable}
 ```
-Where `{variable}` is one of the grid variables: `temperature`, `salinity`, `current_u`, `current_v`, or `chlorophyll`.
+The Stage 1 synthetic sample dataset (`amphan_bob_temperature_sample.nc`) is retained for integration testing and fallback but is NOT the primary dataset.
 
 ### Frontend WMS GetMap Contract
 The frontend (React + CesiumJS) queries the TDS WMS server using the following schema.
 
 #### WMS Endpoint Base URL:
 ```
-http://localhost:8080/thredds/wms/amphan_bob/{variable}
+http://localhost:8080/thredds/wms/amphan_bob_real/{variable}
 ```
 
 #### GetMap Query Parameters:
@@ -81,7 +87,7 @@ http://localhost:8080/thredds/wms/amphan_bob/{variable}
 
 #### Concrete Frontend GetMap Request Example:
 ```
-http://localhost:8080/thredds/wms/amphan_bob/temperature?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&LAYERS=temperature&STYLES=&CRS=CRS:84&BBOX=82.0,8.0,92.0,23.0&WIDTH=256&HEIGHT=256&FORMAT=image/png&TRANSPARENT=true&TIME=2020-05-18T12:00:00Z&ELEVATION=5.0
+http://localhost:8080/thredds/wms/amphan_bob_real/temperature?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&LAYERS=temperature&STYLES=&CRS=CRS:84&BBOX=82.0,8.0,92.0,23.0&WIDTH=256&HEIGHT=256&FORMAT=image/png&TRANSPARENT=true&TIME=2020-05-18T12:00:00Z&ELEVATION=5.0
 ```
 
 > **Note for the Cesium implementation (Stage 1/4):** `Cesium.WebMapServiceImageryProvider` must be configured with a matching `crs: 'CRS:84'` (or equivalent lon/lat-order parameter set) — this is a frontend config detail, not a contract change, but it must match what's defined here or tiles will misalign.

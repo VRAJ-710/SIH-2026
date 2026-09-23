@@ -72,11 +72,15 @@ VARIABLES_CATALOG: list[dict[str, Any]] = [
 ]
 
 # ---------------------------------------------------------------------------
-# Section 3(d) Plugins Registry (Amended per Stage 2 outcomes)
+# Section 3(d) Plugins Registry (Amended per Stage 2 outcomes + Gap Closure)
 # - Copernicus Marine GLORYS12V1 Ingestor -> 'live'
 # - argopy/erddapy Ifremer Argo Ingestor -> 'live'
 # - OMNI Moored Buoy Ingestor -> 'sample' (illustrative fallback; no open API)
 # - Glider Sample Loader -> 'sample' (illustrative BoBBLE 2016 fallback)
+# - ADCP Ingestor -> 'sample' (synthetic illustrative, fully working pipeline)
+# - CTD Ingestor -> 'sample' (synthetic illustrative, fully working pipeline)
+# - ASCII/Text Format Ingestor -> 'sample' (demonstrates CSV/text ingestion)
+# - Copernicus Marine NRT Ingestor -> 'stub' (interface only, not yet implemented)
 # ---------------------------------------------------------------------------
 PLUGINS_REGISTRY: list[dict[str, Any]] = [
     {
@@ -102,7 +106,17 @@ PLUGINS_REGISTRY: list[dict[str, Any]] = [
     {
         "name": "ADCP Ingestor",
         "type": "point",
-        "status": "stub",
+        "status": "sample",
+    },
+    {
+        "name": "CTD Ingestor",
+        "type": "point",
+        "status": "sample",
+    },
+    {
+        "name": "ASCII/Text Format Ingestor (Sample)",
+        "type": "point",
+        "status": "sample",
     },
     {
         "name": "Copernicus Marine NRT Ingestor (Live Mode)",
