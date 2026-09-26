@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Architecture Flowchart</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
+    body { background: #0b1120; color: #f8fafc; padding: 24px; width: 1400px; height: 750px; overflow: hidden; }
+    .header { text-align: center; margin-bottom: 20px; }
+    .header h1 { font-size: 20px; font-weight: 700; color: #38bdf8; letter-spacing: 0.05em; text-transform: uppercase; }
+    .header p { font-size: 12px; color: #94a3b8; margin-top: 4px; }
+    
+    .grid { display: grid; grid-template-columns: 310px 40px 320px 40px 580px; align-items: center; height: 630px; }
+    
+    .tier { background: rgba(30, 41, 59, 0.7); border: 1px solid #334155; border-radius: 12px; padding: 16px; height: 100%; display: flex; flex-direction: column; justify-content: space-between; }
+    .tier-header { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; padding-bottom: 8px; border-bottom: 1px solid #334155; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+    
+    .tier-1 .tier-header { color: #38bdf8; border-color: rgba(56, 189, 248, 0.3); }
+    .tier-2 .tier-header { color: #818cf8; border-color: rgba(129, 140, 248, 0.3); }
+    .tier-3 .tier-header { color: #34d399; border-color: rgba(52, 211, 153, 0.3); }
+    
+    .card { background: #1e293b; border: 1px solid #475569; border-radius: 8px; padding: 10px 12px; margin-bottom: 10px; }
+    .card-title { font-size: 12px; font-weight: 600; color: #f1f5f9; display: flex; justify-content: space-between; align-items: center; }
+    .card-desc { font-size: 10.5px; color: #94a3b8; margin-top: 4px; line-height: 1.35; }
+    .tag { font-size: 9px; padding: 2px 6px; border-radius: 4px; font-weight: 600; text-transform: uppercase; }
+    .tag-blue { background: #0369a1; color: #e0f2fe; }
+    .tag-amber { background: #b45309; color: #fef3c7; }
+    .tag-green { background: #047857; color: #d1fae5; }
+    .tag-purple { background: #6b21a8; color: #f3e8ff; }
+    .tag-rose { background: #be123c; color: #ffe4e6; }
+    
+    .arrow-col { display: flex; flex-direction: column; justify-content: space-around; height: 80%; align-items: center; }
+    .arrow-svg { width: 32px; height: 32px; stroke: #64748b; fill: none; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+    
+    .tier-3-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; height: calc(100% - 35px); }
+    .sub-panel { background: rgba(15, 23, 42, 0.6); border: 1px solid #334155; border-radius: 8px; padding: 10px; display: flex; flex-direction: column; justify-content: space-between; }
+    .sub-title { font-size: 11px; font-weight: 700; text-transform: uppercase; margin-bottom: 6px; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>End-to-End System Architecture & Data Flow</h1>
+    <p>From Multi-Modal Ocean Ingestion to Dockerized Standards Serving & WebGL 4D Co-Visualization</p>
+  </div>
+
+  <div class="grid">
+    <!-- TIER 1 -->
+    <div class="tier tier-1">
+      <div class="tier-header">1. Multi-Modal Ingestion</div>
+      <div class="card">
+        <div class="card-title">Copernicus GLORYS12V1 <span class="tag tag-blue">Reanalysis</span></div>
+        <div class="card-desc">Daily 1/12° (~8km) grid, 50 depth levels (0.5m-5728m). Temp, Salinity, Current U/V.</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Ifremer Argo Floats <span class="tag tag-amber">In-Situ</span></div>
+        <div class="card-desc">Core T/S profiles + BGC Chlorophyll-a via ERDDAP. QC flags 1,2,5,8 preserved.</div>
+      </div>
+      <div class="card">
+        <div class="card-title">INCOIS Moored Buoys <span class="tag tag-rose">OMNI</span></div>
+        <div class="card-desc">Stations BD08, BD11, BD14. Multi-depth time-series down to 500m.</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Glider & ADCP & CTD <span class="tag tag-purple">Point Data</span></div>
+        <div class="card-desc">BoBBLE Seaglider dives (1000m), ADCP current profilers, & Shipboard CTD CSV logs.</div>
+      </div>
+      <div class="card" style="border-color: #38bdf8; background: #0c4a6e;">
+        <div class="card-title" style="color: #38bdf8;">Standardization & Storage</div>
+        <div class="card-desc" style="color: #e0f2fe;">CF-1.8 NetCDF-4 (114 MB) + Unified 8-Column Melted Parquet Store.</div>
+      </div>
+    </div>
+
+    <!-- ARROW 1 -->
+    <div class="arrow-col">
+      <svg class="arrow-svg" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      <svg class="arrow-svg" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+    </div>
+
+    <!-- TIER 2 -->
+    <div class="tier tier-2">
+      <div class="tier-header">2. Dockerized Serving Tier</div>
+      <div class="card" style="border-color: #818cf8;">
+        <div class="card-title">THREDDS Data Server 5.8 <span class="tag tag-purple">Port 8080</span></div>
+        <div class="card-desc">
+          • <strong>ncWMS 1.3.0 Engine:</strong> Dynamic tile slicing.<br>
+          • <strong>CRS:84 Coordinate Lock:</strong> Zero axis flip.<br>
+          • <strong>TIME & ELEVATION:</strong> 4D depth/time slices.<br>
+          • <strong>OPeNDAP / WCS:</strong> Remote array subsetting.
+        </div>
+      </div>
+      <div class="card" style="border-color: #a5b4fc;">
+        <div class="card-title">FastAPI Microservice <span class="tag tag-blue">Port 8000</span></div>
+        <div class="card-desc">
+          • <strong>/api/instruments:</strong> BBox & temporal filtering.<br>
+          • <strong>/api/instrument/{id}/profile:</strong> 4D spatial bilinear interpolation & instant <strong>MAE calculation</strong>.<br>
+          • <strong>/api/volume:</strong> 3D subgrid uniform extraction with <strong>-9999 land sentinel</strong> masking.<br>
+          • <strong>/api/variables & /api/plugins:</strong> Dynamic metadata.
+        </div>
+      </div>
+      <div class="card" style="background: #1e1b4b; border-color: #6366f1;">
+        <div class="card-title" style="color: #a5b4fc;">In-Memory Analytical Engine</div>
+        <div class="card-desc" style="color: #e0e7ff;">Thread-safe shared memory DataFrame store; sub-200ms API response SLA.</div>
+      </div>
+    </div>
+
+    <!-- ARROW 2 -->
+    <div class="arrow-col">
+      <svg class="arrow-svg" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      <svg class="arrow-svg" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+    </div>
+
+    <!-- TIER 3 -->
+    <div class="tier tier-3">
+      <div class="tier-header">3. Browser-Native Presentation Tier (React 19 + TypeScript)</div>
+      <div class="tier-3-grid">
+        <!-- Sub-panel 1: Cesium -->
+        <div class="sub-panel">
+          <div>
+            <div class="sub-title" style="color: #38bdf8;">CesiumJS 4D Globe Engine</div>
+            <div class="card-desc">
+              • <strong>WMS Imagery Provider:</strong> Real-time WMS tile streaming in CRS:84.<br>
+              • <strong>In-Situ Billboards:</strong> Color-coded sensor markers (Argo, Buoy, Glider, ADCP, CTD).<br>
+              • <strong>Vertical Exaggeration:</strong> 1x-10x seafloor bathymetry modulation.<br>
+              • <strong>Stage 10 Offline Fallback:</strong> 6s timeout -> local NaturalEarthII tiles.
+            </div>
+          </div>
+          <div style="font-size: 10px; color: #38bdf8; font-weight: 600; margin-top: 8px;">60 FPS Geospatial Context</div>
+        </div>
+
+        <!-- Sub-panel 2: Three.js -->
+        <div class="sub-panel">
+          <div>
+            <div class="sub-title" style="color: #c084fc;">Three.js 3D Volumetric Modal</div>
+            <div class="card-desc">
+              • <strong>GPU Raymarching:</strong> Custom GLSL shader with 3D DataTexture & transfer ramps.<br>
+              • <strong>Marching Cubes:</strong> Real-time dynamic isosurface polygon extraction.<br>
+              • <strong>Land Sentinel Discard:</strong> Zero-bleed coastline transparency for voxels &lt;= -9998.5.<br>
+              • <strong>UnrealBloomPass:</strong> Cyclone core thermal glow.
+            </div>
+          </div>
+          <div style="font-size: 10px; color: #c084fc; font-weight: 600; margin-top: 8px;">Depth-Resolved Water Column</div>
+        </div>
+
+        <!-- Sub-panel 3: Plotly Validation -->
+        <div class="sub-panel">
+          <div>
+            <div class="sub-title" style="color: #34d399;">Plotly.js Scientific Validation</div>
+            <div class="card-desc">
+              • <strong>Multi-Axis Profiling:</strong> Temp, Salinity, Chl-a, Currents on reversed depth axis (0-2000m).<br>
+              • <strong>Observed vs. Model:</strong> Solid lines (real sensors) vs. dashed lines (GLORYS12).<br>
+              • <strong>Live MAE Banner:</strong> Instant quantitative forecast accuracy check.
+            </div>
+          </div>
+          <div style="font-size: 10px; color: #34d399; font-weight: 600; margin-top: 8px;">Ground-Truth Verification</div>
+        </div>
+
+        <!-- Sub-panel 4: UI & Outreach -->
+        <div class="sub-panel">
+          <div>
+            <div class="sub-title" style="color: #f472b6;">Interactive UI & Public Tour</div>
+            <div class="card-desc">
+              • <strong>Forecaster Controls:</strong> Dynamic ncWMS colorbars, numeric ranges, log scales.<br>
+              • <strong>4D Timeline:</strong> 13 daily timesteps with play/pause and scrubber.<br>
+              • <strong>5-Beat Guided Tour:</strong> Educational narrative on Cyclone Amphan for students and public.
+            </div>
+          </div>
+          <div style="font-size: 10px; color: #f472b6; font-weight: 600; margin-top: 8px;">Dual-Mode Operation</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

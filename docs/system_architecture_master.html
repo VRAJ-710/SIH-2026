@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>OCEAN-3D Master System Architecture & Traced Flows</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
+    body { background: #070d17; color: #f8fafc; padding: 20px; width: 1600px; height: 900px; overflow: hidden; }
+    
+    /* Top Header */
+    .header-bar { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #1e293b; padding-bottom: 10px; margin-bottom: 12px; }
+    .header-title h1 { font-size: 19px; font-weight: 800; color: #38bdf8; text-transform: uppercase; letter-spacing: 0.05em; }
+    .header-title p { font-size: 11px; color: #94a3b8; margin-top: 2px; }
+    .header-meta { display: flex; gap: 14px; font-size: 11px; }
+    .meta-tag { background: #1e293b; border: 1px solid #334155; padding: 4px 10px; border-radius: 6px; font-family: ui-monospace, monospace; color: #cbd5e1; }
+    .meta-tag strong { color: #38bdf8; }
+
+    /* SECTION 1: REFERENCE LAYER (TOP 3 COLUMNS) */
+    .ref-layer { display: grid; grid-template-columns: 460px 480px 600px; gap: 14px; margin-bottom: 14px; height: 265px; }
+    .ref-col { background: rgba(15, 23, 42, 0.75); border: 1px solid #334155; border-radius: 8px; padding: 10px 14px; display: flex; flex-direction: column; justify-content: space-between; }
+    .ref-col.col-1 { border-top: 3px solid #0284c7; }
+    .ref-col.col-2 { border-top: 3px solid #6366f1; }
+    .ref-col.col-3 { border-top: 3px solid #10b981; }
+    
+    .ref-header { font-size: 11.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; }
+    .col-1 .ref-header { color: #38bdf8; }
+    .col-2 .ref-header { color: #a5b4fc; }
+    .col-3 .ref-header { color: #34d399; }
+    
+    .ref-content { font-size: 10px; color: #cbd5e1; line-height: 1.4; display: flex; flex-direction: column; gap: 6px; }
+    .ref-item { background: rgba(30, 41, 59, 0.6); border: 1px solid #334155; border-radius: 5px; padding: 6px 8px; }
+    .ref-item strong { color: #f1f5f9; font-weight: 600; }
+    .code-pill { background: #0f172a; padding: 1px 4px; border-radius: 3px; font-family: ui-monospace, monospace; color: #7dd3fc; font-size: 9.5px; }
+
+    /* SECTION 2: THREE NUMBERED TRACED FLOWS (BOTTOM) */
+    .traces-layer { display: flex; flex-direction: column; gap: 10px; height: 550px; }
+    .trace-card { background: rgba(15, 23, 42, 0.9); border-radius: 8px; padding: 10px 14px; display: flex; flex-direction: column; justify-content: space-between; flex: 1; border: 1px solid #334155; }
+    
+    .trace-card.trace-1 { border-left: 5px solid #f59e0b; }
+    .trace-card.trace-2 { border-left: 5px solid #38bdf8; }
+    .trace-card.trace-3 { border-left: 5px solid #a855f7; }
+    
+    .trace-title-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+    .trace-name { font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; display: flex; align-items: center; gap: 8px; }
+    .trace-1 .trace-name { color: #fbbf24; }
+    .trace-2 .trace-name { color: #38bdf8; }
+    .trace-3 .trace-name { color: #c084fc; }
+    
+    .badge { font-size: 9px; padding: 2px 7px; border-radius: 4px; font-weight: 700; text-transform: uppercase; font-family: ui-monospace, monospace; }
+    .badge-amber { background: #78350f; color: #fef3c7; border: 1px solid #d97706; }
+    .badge-blue { background: #0c4a6e; color: #e0f2fe; border: 1px solid #0284c7; }
+    .badge-purple { background: #4c1d95; color: #f3e8ff; border: 1px solid #7c3aed; }
+    .latency-pill { font-size: 10px; color: #94a3b8; font-family: ui-monospace, monospace; }
+
+    /* Steps Chain */
+    .steps-row { display: flex; align-items: center; gap: 6px; width: 100%; }
+    .step-node { background: #1e293b; border: 1px solid #475569; border-radius: 6px; padding: 7px 8px; flex: 1; min-height: 88px; display: flex; flex-direction: column; justify-content: flex-start; }
+    .step-tag { font-size: 8.5px; font-weight: 800; text-transform: uppercase; margin-bottom: 3px; display: flex; justify-content: space-between; }
+    .trace-1 .step-tag { color: #f59e0b; }
+    .trace-2 .step-tag { color: #38bdf8; }
+    .trace-3 .step-tag { color: #c084fc; }
+    
+    .step-headline { font-size: 10.5px; font-weight: 700; color: #f8fafc; line-height: 1.25; margin-bottom: 2px; }
+    .step-detail { font-size: 9px; color: #94a3b8; line-height: 1.25; }
+    .step-code { font-family: ui-monospace, monospace; color: #7dd3fc; font-size: 8.5px; word-break: break-all; margin-top: 2px; }
+    .arrow-icon { color: #64748b; font-size: 14px; font-weight: 900; flex-shrink: 0; padding: 0 1px; }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <div class="header-bar">
+    <div class="header-title">
+      <h1>OCEAN-3D: Complete Technical Architecture & End-to-End Traced Flows</h1>
+      <p>Ground-Truth Verified Against Codebase (backend/routers, data_store.py, volume_store.py, App.tsx, Three.js shaders)</p>
+    </div>
+    <div class="header-meta">
+      <div class="meta-tag">Cyclone Amphan: <strong>8–23°N, 82–92°E</strong></div>
+      <div class="meta-tag">Grid: <strong>181×121×50</strong> (13 Days)</div>
+      <div class="meta-tag">Docker: <strong>sih_tds:8080 & sih_backend:8000</strong></div>
+    </div>
+  </div>
+
+  <!-- SECTION 1: REFERENCE ARCHITECTURE LAYER -->
+  <div class="ref-layer">
+    <!-- Col 1: Ingestion -->
+    <div class="ref-col col-1">
+      <div class="ref-header">
+        <span>1. Ingestion Sources & Standardization</span>
+        <span class="code-pill">CF-1.8 NetCDF & Parquet</span>
+      </div>
+      <div class="ref-content">
+        <div class="ref-item">
+          <strong>Grid Reanalysis:</strong> Copernicus GLORYS12V1 NetCDF-4 (113.9 MB). Dimensions: <span class="code-pill">time:13</span>, <span class="code-pill">depth:50</span> (0.494m to 5727.9m), <span class="code-pill">lat:181</span>, <span class="code-pill">lon:121</span> (~8km resolution). Variables: <span class="code-pill">temperature</span>, <span class="code-pill">salinity</span>, <span class="code-pill">current_u</span>, <span class="code-pill">current_v</span>.
+        </div>
+        <div class="ref-item">
+          <strong>In-Situ Point Instruments:</strong> Ifremer Argo GDAC ERDDAP (15,689 rows, 21 floats, Core T/S + BGC Chl-a), INCOIS OMNI buoys (468 rows, BD08/BD11/BD14), BoBBLE Seaglider SG620 (1680 rows), ADCP current moorings (108 rows), CTD casts (56 rows), CSV text (16 rows).
+        </div>
+        <div class="ref-item">
+          <strong>Unified Melted Schema (8-col Parquet):</strong> <span class="code-pill">lat, lon, depth, time, variable, value, instrument_id, instrument_type</span>. Loaded via generic <span class="code-pill">glob("points_*.parquet")</span>.
+        </div>
+      </div>
+    </div>
+
+    <!-- Col 2: Serving -->
+    <div class="ref-col col-2">
+      <div class="ref-header">
+        <span>2. Dockerized Compute & Serving Tier</span>
+        <span class="code-pill">Docker Compose Linking</span>
+      </div>
+      <div class="ref-content">
+        <div class="ref-item">
+          <strong>Unidata THREDDS Server (TDS 5.8):</strong> Container <span class="code-pill">sih_tds</span> on port <strong>8080</strong>. Serves ncWMS 1.3.0 GetMap/GetCapabilities in <span class="code-pill">CRS:84</span> (fixed lon/lat axis order, zero inversion). Slices NetCDF along TIME and ELEVATION with palette mapping (<span class="code-pill">psu-magma</span>, <span class="code-pill">viridis</span>).
+        </div>
+        <div class="ref-item">
+          <strong>FastAPI Microservice (Python 3.12):</strong> Container <span class="code-pill">sih_backend</span> on port <strong>8000</strong>. Serves <span class="code-pill">/instruments</span>, <span class="code-pill">/instrument/{id}/profile</span>, <span class="code-pill">/volume</span>, <span class="code-pill">/variables</span>, <span class="code-pill">/plugins</span>, <span class="code-pill">/health</span> (dual-mounted at <span class="code-pill">/api/health</span>).
+        </div>
+        <div class="ref-item">
+          <strong>In-Memory Stores:</strong> Thread-safe <span class="code-pill">DataStore</span> (Parquet dataframe + model xarray handle) and <span class="code-pill">VolumeStore</span> with threading lock. Benchmarked latency: <strong>15–45ms</strong>.
+        </div>
+      </div>
+    </div>
+
+    <!-- Col 3: Presentation -->
+    <div class="ref-col col-3">
+      <div class="ref-header">
+        <span>3. Browser Presentation Tier (React 19 + TypeScript)</span>
+        <span class="code-pill">Vite Dev:5173 / Nginx Prod</span>
+      </div>
+      <div class="ref-content">
+        <div class="ref-item">
+          <strong>CesiumJS Globe Engine (v1.145):</strong> World Bathymetry, <span class="code-pill">WebMapServiceImageryProvider</span> with GeographicTilingScheme, in-situ CustomDataSource point billboards. <strong>Stage 10 Offline Resilience:</strong> 6s timeout interceptor auto-swaps to bundled <span class="code-pill">NaturalEarthII</span> tiles and <span class="code-pill">EllipsoidTerrainProvider</span>.
+        </div>
+        <div class="ref-item">
+          <strong>Three.js Subsurface Engine (v0.186):</strong> Direct GPU Volume Raymarching with <span class="code-pill">Data3DTexture</span> + Marching Cubes isosurface extraction. Land sentinel tolerance: <span class="code-pill">&lt;= -9998.5</span> sets transparency. Post-processing: <span class="code-pill">EffectComposer</span> + <span class="code-pill">UnrealBloomPass</span>.
+        </div>
+        <div class="ref-item">
+          <strong>Plotly & Interaction UI:</strong> Multi-axis depth profiling with collocated observed vs. model traces and MAE banner; GSAP colorbar controls drawer; 5-beat Cyclone Amphan guided tour.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 2: THREE COLOR-CODED NUMBERED TRACES -->
+  <div class="traces-layer">
+
+    <!-- TRACE 1: IN-SITU MARKER CLICK -->
+    <div class="trace-card trace-1">
+      <div class="trace-title-row">
+        <div class="trace-name">
+          <span>TRACE 1: In-Situ Marker Click to Live Model-vs-Obs MAE Validation (Profile Flow)</span>
+          <span class="badge badge-amber">Profile Validation</span>
+        </div>
+        <div class="latency-pill">Latency: ~35ms | Pure In-Memory Collocation</div>
+      </div>
+      <div class="steps-row">
+        <div class="step-node">
+          <div class="step-tag">Step 1 • Browser Canvas</div>
+          <div class="step-headline">Cesium Screen Event</div>
+          <div class="step-detail"><span class="step-code">ScreenSpaceEventHandler</span> picks click position via <span class="step-code">scene.pick(click.position)</span>. Reads properties:</div>
+          <div class="step-code">instId = pickedObject.id.properties.instrument_id.getValue()</div>
+        </div>
+        <div class="arrow-icon">→</div>
+        <div class="step-node">
+          <div class="step-tag">Step 2 • Client Fetch</div>
+          <div class="step-headline">Async API Trigger</div>
+          <div class="step-detail"><span class="step-code">App.tsx:fetchProfile(instId)</span> fires REST request via Vite proxy:</div>
+          <div class="step-code">GET /api/instrument/{id}/profile</div>
+          <div class="step-detail">Sets <span class="step-code">loadingProfile=true</span>; clears previous profile.</div>
+        </div>
+        <div class="arrow-icon">→</div>
+        <div class="step-node">
+          <div class="step-tag">Step 3 • Router & Store</div>
+          <div class="step-headline">FastAPI Lookup</div>
+          <div class="step-detail"><span class="step-code">instruments.py:get_instrument_profile</span> calls <span class="step-code">store.get_profile(id)</span>. Reads Parquet rows from <span class="step-code">self._df</span>; groups by depth to build <span class="step-code">depth_data</span>.</div>
+        </div>
+        <div class="arrow-icon">→</div>
+        <div class="step-node">
+          <div class="step-tag">Step 4 • Spatial Math</div>
+          <div class="step-headline">4D Bilinear Interp</div>
+          <div class="step-detail"><span class="step-code">data_store.py</span> opens NetCDF; selects nearest time & bilinear in lat/lon:</div>
+          <div class="step-code">pt = ds.sel(time=t).interp(lat=lat, lon=lon)</div>
+          <div class="step-detail">Linear interp along depth without extrapolation.</div>
+        </div>
+        <div class="arrow-icon">→</div>
+        <div class="step-node">
+          <div class="step-tag">Step 5 • Validation Metric</div>
+          <div class="step-headline">MAE Calculation</div>
+          <div class="step-detail">Computes absolute delta for temp & salinity:</div>
+          <div class="step-code">t_diffs = abs(row["temp"] - t_mod_val)</div>
+          <div class="step-code">mae = round(float(np.mean(t_diffs)), 3)</div>
+          <div class="step-detail">Excludes NaN / unmodeled bathymetric depths.</div>
+        </div>
+        <div class="arrow-icon">→</div>
+        <div class="step-node">
+          <div class="step-tag">Step 6 • Response Payload</div>
+          <div class="step-headline">JSON Return</div>
+          <div class="step-detail">Returns <span class="step-code">InstrumentProfile</span>:</div>
+          <div class="step-code">{instrument_id, lat, lon, time, model_temperature_mae, model_salinity_mae, data: [...]}</div>
+        </div>
+        <div class="arrow-icon">→</div>
+        <div class="step-node">
+          <div class="step-tag">Step 7 • UI Rendering</div>
+          <div class="step-headline">Plotly Dual-Trace Chart</div>
+          <div class="step-detail"><span class="step-code">App.tsx</span> sets <span class="step-code">selectedProfile</span>. Plotly <span class="step-code">&lt;Plot&gt;</span> draws solid lines (Obs) vs dashed lines (Model) with reversed depth axis & MAE banner.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TRACE 2: WMS SLICING -->
+    <div class="trace-card trace-2">
+      <div class="trace-title-row">
+        <div class="trace-name">
+          <span>TRACE 2: Timeline or Depth Drag to 4D ncWMS Tile Slicing (Map Tile Flow)</span>
+          <span class="badge badge-blue">WMS 1.3.0 Slicing</span>
+        </div>
+        <div class="latency-pill">Latency: ~45ms per 256x256 PNG Tile | OGC ncWMS Engine</div>
+      </div>
+      <div class="steps-row">
+        <div class="step-node">
+          <div class="step-tag">Step 1 • Control Input</div>
+          <div class="step-headline">Scrubber / Slider Drag</div>
+          <div class="step-detail">User drags depth slider (<span class="step-code">setDepthIndex</span>) or time scrubber (<span class="step-code">setTimeIndex</span>). Updates React state:</div>
+          <div class="step-code">currentTime = timeSteps[timeIndex]</div>
+          <div class="step-code">currentDepth = depthLevels[depthIndex]</div>
+        </div>
+        <div class="arrow-icon">→</div>
+        <div class="step-node">
+          <div class="step-tag">Step 2 • Layer Provider</div>
+          <div class="step-headline">Cesium WMS Config</div>
+          <div class="step-detail"><span class="step-code">App.tsx</span> creates <span class="step-code">WebMapServiceImageryProvider</span> with <span class="step-code">crs: 'CRS:84'</span> and parameters:</div>
+          <div class="step-code">TIME: currentTime, ELEVATION: depth.valueStr</div>
+          <div class="step-code">COLORSCALERANGE: `${min},${max}`, LOGSCALE</div>
+        </div>
+        <div class="arrow-icon">→</div>
+        <div class="step-node">
+          <div class="step-tag">Step 3 • HTTP GetMap</div>
+          <div class="step-headline">OGC WMS Tile Query</div>
+          <div class="step-detail">Cesium requests 256x256 tile with bbox:</div>
+          <div class="step-code">GET /thredds/wms/amphan_bob_real/temperature?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&LAYERS=temperature&CRS=CRS:84&STYLES=boxfill/psu-magma...</div>
+        </div>
+        <div class="arrow-icon">→</div>
+        <div class="step-node">
+          <div class="step-tag">Step 4 • Reverse Proxy</div>
+          <div class="step-headline">Vite / Nginx Routing</div>
+          <div class="step-detail"><span class="step-code">vite.config.ts</span> proxies <span class="step-code">/thredds</span> to <span class="step-code">http://localhost:8080</span>. In Docker, forwards to <span class="step-code">sih_tds</span> container without CORS.</div>
+        </div>
+        <div class="arrow-icon">→</div>
+        <div class="step-node">
+          <div class="step-tag">Step 5 • Server Execution</div>
+          <div class="step-headline">THREDDS ncWMS Slicing</div>
+          <div class="step-detail">TDS 5.8 ncWMS engine queries <span class="step-code">amphan_bob_real.nc</span>; extracts 2D horizontal slice at exact <span class="step-code">TIME</span> & <span class="step-code">ELEVATION</span>; maps to colormap palette.</div>
+        </div>
+        <div class="arrow-icon">→</div>
+        <div class="step-node">
+          <div class="step-tag">Step 6 • Tile Return</div>
+          <div class="step-headline">256x256 PNG Tile</div>
+          <div class="step-detail">Server returns georeferenced transparent PNG (&lt;45 KB) in <span class="step-code">CRS:84</span> coordinate order.</div>
+        </div>
+        <div class="arrow-icon">→</div>
+        <div class="step-node">
+          <div class="step-tag">Step 7 • GPU Blending</div>
+          <div class="step-headline">Globe Layer Render</div>
+          <div class="step-detail">Cesium texture pipeline clamps PNG tile over Bay of Bengal; blends with bathymetry & layer opacity (<span class="step-code">layerRef.current.alpha</span>).</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TRACE 3: 3D VOLUMETRIC -->
+    <div class="trace-card trace-3">
+      <div class="trace-title-row">
+        <div class="trace-name">
+          <span>TRACE 3: "Drill into 3D" to GPU Raymarching & Isosurface (Volumetric Flow)</span>
+          <span class="badge badge-purple">3D Water-Column</span>
+        </div>
+        <div class="latency-pill">Latency: 15–45ms Resampling | 60 FPS GPU WebGL Shading</div>
+      </div>
+      <div class="steps-row">
+        <div class="step-node">
+          <div class="step-tag">Step 1 • User Trigger</div>
+          <div class="step-headline">Drill into 3D Button</div>
+          <div class="step-detail">User clicks 3D view button in <span class="step-code">App.tsx</span>. State updates <span class="step-code">setShow3DOverlay(true)</span>; mounts <span class="step-code">VolumetricOverlay.tsx</span>.</div>
+        </div>
+        <div class="arrow-icon">→</div>
+        <div class="step-node">
+          <div class="step-tag">Step 2 • Client Fetch</div>
+          <div class="step-headline">Subgrid API Request</div>
+          <div class="step-detail"><span class="step-code">fetchVolumeData.ts</span> queries backend:</div>
+          <div class="step-code">GET /api/volume?bbox=84,14,90,18&time=2020-05-21...&variable=temperature&max_depth=200&resolution=32,32,16</div>
+        </div>
+        <div class="arrow-icon">→</div>
+        <div class="step-node">
+          <div class="step-tag">Step 3 • Server Resampling</div>
+          <div class="step-headline">Trilinear Grid Subsetting</div>
+          <div class="step-detail"><span class="step-code">volume_store.py</span> crops subgrid with 0.25° pad; resamples via <span class="step-code">interp(method='linear', fill_value=nan)</span> into uniform 32x32x16 grid.</div>
+        </div>
+        <div class="arrow-icon">→</div>
+        <div class="step-node">
+          <div class="step-tag">Step 4 • Sentinel Mask</div>
+          <div class="step-headline">Land Sentinel Clipping</div>
+          <div class="step-detail">Missing cells/land set to <span class="step-code">LAND_SENTINEL = -9999.0</span>. Flattens in C row-major layout:</div>
+          <div class="step-code">arr.transpose('depth','lat','lon').values</div>
+        </div>
+        <div class="arrow-icon">→</div>
+        <div class="step-node">
+          <div class="step-tag">Step 5 • VRAM Upload</div>
+          <div class="step-headline">Three.js Data3DTexture</div>
+          <div class="step-detail"><span class="step-code">VolumeRaymarchReal.ts</span> uploads 16,384 floats to GPU:</div>
+          <div class="step-code">new Data3DTexture(floatArray, 32, 32, 16)</div>
+          <div class="step-detail">Sets <span class="step-code">format=RedFormat, type=FloatType</span>.</div>
+        </div>
+        <div class="arrow-icon">→</div>
+        <div class="step-node">
+          <div class="step-tag">Step 6 • GLSL Shader</div>
+          <div class="step-headline">Raymarch & Sentinel Skip</div>
+          <div class="step-detail">Custom fragment shader casts rays; checks:</div>
+          <div class="step-code">if (rawVal &lt;= u_landSentinel + 0.5) continue;</div>
+          <div class="step-detail">Skips land cells (clean coastline); applies transfer function.</div>
+        </div>
+        <div class="arrow-icon">→</div>
+        <div class="step-node">
+          <div class="step-tag">Step 7 • Post-Processing</div>
+          <div class="step-headline">UnrealBloomPass Glow</div>
+          <div class="step-detail"><span class="step-code">EffectComposer</span> renders raymarched volume (or Marching Cubes isosurface) with <span class="step-code">UnrealBloomPass(str=0.4, rad=0.35, thresh=0.65)</span> for cyclone thermal glow at 60 FPS.</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

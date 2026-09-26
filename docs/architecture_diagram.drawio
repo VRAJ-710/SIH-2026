@@ -1,132 +1,118 @@
-<mxfile host="app.diagrams.net" modified="2026-09-24T00:00:00.000Z" agent="Antigravity/SIH2026" version="24.7.5">
+<mxfile host="app.diagrams.net" agent="Antigravity/SIH2026">
   <diagram id="incois-3d-arch" name="INCOIS 3D Ocean Architecture">
-    <mxGraphModel dx="1600" dy="950" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1654" pageHeight="1169" math="0" shadow="0">
+    <mxGraphModel dx="619" dy="408" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1654" pageHeight="1169" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
-
-        <!-- GROUP: DATA INGESTION & PIPELINE -->
-        <mxCell id="grp_ingestion" value="1. MULTI-MODAL OCEAN INGESTION &amp; EXTRACTION ENGINE" style="swimlane;whiteSpace=wrap;html=1;fillColor=#1e293b;strokeColor=#475569;fontColor=#f8fafc;fontStyle=1;fontSize=14;startSize=30;rounded=1;" vertex="1" parent="1">
-          <mxGeometry x="40" y="40" width="380" height="980" as="geometry" />
+        <mxCell id="grp_ingestion" parent="1" style="swimlane;whiteSpace=wrap;html=1;fillColor=#1e293b;strokeColor=#475569;fontColor=#f8fafc;fontStyle=1;fontSize=14;startSize=30;rounded=1;" value="1. MULTI-MODAL OCEAN INGESTION &amp; EXTRACTION ENGINE" vertex="1">
+          <mxGeometry height="980" width="380" x="40" y="40" as="geometry" />
         </mxCell>
-        <mxCell id="src_copernicus" value="Copernicus Marine (CMEMS)&#xa;GLORYS12V1 Reanalysis Grid&#xa;(Daily, 1/12° ~8km, 50 Depths)&#xa;Variables: thetao, so, uo, vo" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0f172a;strokeColor=#38bdf8;fontColor=#e2e8f0;fontSize=11;" vertex="1" parent="grp_ingestion">
-          <mxGeometry x="25" y="50" width="330" height="70" as="geometry" />
+        <mxCell id="src_copernicus" parent="grp_ingestion" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0f172a;strokeColor=#38bdf8;fontColor=#e2e8f0;fontSize=11;" value="Copernicus Marine (CMEMS)&#xa;GLORYS12V1 Reanalysis Grid&#xa;(Daily, 1/12° ~8km, 50 Depths)&#xa;Variables: thetao, so, uo, vo" vertex="1">
+          <mxGeometry height="70" width="330" x="25" y="50" as="geometry" />
         </mxCell>
-        <mxCell id="src_argo" value="Ifremer Argo GDAC (ERDDAP)&#xa;Core Floats (T/S) + BGC Floats (Chl-a)&#xa;QC Flags Filtered (1, 2, 5, 8 Accepted)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0f172a;strokeColor=#fbbf24;fontColor=#e2e8f0;fontSize=11;" vertex="1" parent="grp_ingestion">
-          <mxGeometry x="25" y="140" width="330" height="60" as="geometry" />
+        <mxCell id="src_argo" parent="grp_ingestion" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0f172a;strokeColor=#fbbf24;fontColor=#e2e8f0;fontSize=11;" value="Ifremer Argo GDAC (ERDDAP)&#xa;Core Floats (T/S) + BGC Floats (Chl-a)&#xa;QC Flags Filtered (1, 2, 5, 8 Accepted)" vertex="1">
+          <mxGeometry height="60" width="330" x="25" y="140" as="geometry" />
         </mxCell>
-        <mxCell id="src_buoy" value="INCOIS OMNI Moored Buoy Network&#xa;Stations BD08, BD11, BD14&#xa;Deep &amp; Surface Climatological Moorings" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0f172a;strokeColor=#f43f5e;fontColor=#e2e8f0;fontSize=11;" vertex="1" parent="grp_ingestion">
-          <mxGeometry x="25" y="220" width="330" height="60" as="geometry" />
+        <mxCell id="src_buoy" parent="grp_ingestion" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0f172a;strokeColor=#f43f5e;fontColor=#e2e8f0;fontSize=11;" value="INCOIS OMNI Moored Buoy Network&#xa;Stations BD08, BD11, BD14&#xa;Deep &amp; Surface Climatological Moorings" vertex="1">
+          <mxGeometry height="60" width="330" x="25" y="220" as="geometry" />
         </mxCell>
-        <mxCell id="src_glider" value="BoBBLE 2016 Seaglider SG620&#xa;Autonomous High-Res Dives (0-1000m)&#xa;Thermocline &amp; Salinity Barrier Layers" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0f172a;strokeColor=#06b6d4;fontColor=#e2e8f0;fontSize=11;" vertex="1" parent="grp_ingestion">
-          <mxGeometry x="25" y="300" width="330" height="60" as="geometry" />
+        <mxCell id="src_glider" parent="grp_ingestion" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0f172a;strokeColor=#06b6d4;fontColor=#e2e8f0;fontSize=11;" value="BoBBLE 2016 Seaglider SG620&#xa;Autonomous High-Res Dives (0-1000m)&#xa;Thermocline &amp; Salinity Barrier Layers" vertex="1">
+          <mxGeometry height="60" width="330" x="25" y="300" as="geometry" />
         </mxCell>
-        <mxCell id="src_adcp" value="ADCP Moored Current Profilers&#xa;Stations ADCP_BOB_01 &amp; 02&#xa;Current Velocity Bins (u, v down to 150m)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0f172a;strokeColor=#a855f7;fontColor=#e2e8f0;fontSize=11;" vertex="1" parent="grp_ingestion">
-          <mxGeometry x="25" y="380" width="330" height="60" as="geometry" />
+        <mxCell id="src_adcp" parent="grp_ingestion" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0f172a;strokeColor=#a855f7;fontColor=#e2e8f0;fontSize=11;" value="ADCP Moored Current Profilers&#xa;Stations ADCP_BOB_01 &amp; 02&#xa;Current Velocity Bins (u, v down to 150m)" vertex="1">
+          <mxGeometry height="60" width="330" x="25" y="380" as="geometry" />
         </mxCell>
-        <mxCell id="src_ascii" value="Shipboard / Laboratory ASCII/CSV&#xa;Generic Delimited Text Parser&#xa;Dynamic Mapping to CF Column Standards" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0f172a;strokeColor=#10b981;fontColor=#e2e8f0;fontSize=11;" vertex="1" parent="grp_ingestion">
-          <mxGeometry x="25" y="460" width="330" height="60" as="geometry" />
+        <mxCell id="src_ascii" parent="grp_ingestion" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0f172a;strokeColor=#10b981;fontColor=#e2e8f0;fontSize=11;" value="Shipboard / Laboratory ASCII/CSV&#xa;Generic Delimited Text Parser&#xa;Dynamic Mapping to CF Column Standards" vertex="1">
+          <mxGeometry height="60" width="330" x="25" y="460" as="geometry" />
         </mxCell>
-        <mxCell id="ingest_proc" value="STANDARDIZATION &amp; QC PIPELINE&#xa;xarray + pandas + netCDF4 + pyarrow&#xa;• CF-1.8 Strict Convention Tagging&#xa;• Depth Positive-Down Convention&#xa;• Melted 8-Column Schema Transformation&#xa;• Automated Offline Fallback Caching" style="shape=process;whiteSpace=wrap;html=1;backgroundOutline=1;fillColor=#1e1b4b;strokeColor=#818cf8;fontColor=#e0e7ff;fontSize=11;fontStyle=1;" vertex="1" parent="grp_ingestion">
-          <mxGeometry x="25" y="550" width="330" height="110" as="geometry" />
+        <mxCell id="ingest_proc" parent="grp_ingestion" style="shape=process;whiteSpace=wrap;html=1;backgroundOutline=1;fillColor=#1e1b4b;strokeColor=#818cf8;fontColor=#e0e7ff;fontSize=11;fontStyle=1;" value="STANDARDIZATION &amp; QC PIPELINE&#xa;xarray + pandas + netCDF4 + pyarrow&#xa;• CF-1.8 Strict Convention Tagging&#xa;• Depth Positive-Down Convention&#xa;• Melted 8-Column Schema Transformation&#xa;• Automated Offline Fallback Caching" vertex="1">
+          <mxGeometry height="110" width="330" x="25" y="550" as="geometry" />
         </mxCell>
-        <mxCell id="out_netcdf" value="CF-1.8 Compliant NetCDF-4&#xa;amphan_bob_real.nc&#xa;(time:13, depth:50, lat:181, lon:121)&#xa;[113.9 MB Matrix Storage]" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=10;fillColor=#0369a1;strokeColor=#38bdf8;fontColor=#ffffff;fontSize=11;" vertex="1" parent="grp_ingestion">
-          <mxGeometry x="25" y="690" width="330" height="80" as="geometry" />
+        <mxCell id="out_netcdf" parent="grp_ingestion" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=10;fillColor=#0369a1;strokeColor=#38bdf8;fontColor=#ffffff;fontSize=11;" value="CF-1.8 Compliant NetCDF-4&#xa;amphan_bob_real.nc&#xa;(time:13, depth:50, lat:181, lon:121)&#xa;[113.9 MB Matrix Storage]" vertex="1">
+          <mxGeometry height="80" width="330" x="25" y="690" as="geometry" />
         </mxCell>
-        <mxCell id="out_parquet" value="Unified Melted Parquet Point Store&#xa;points_{argo, buoy, glider, adcp, ctd}.parquet&#xa;Schema: lat, lon, depth, time, variable,&#xa;value, instrument_id, instrument_type" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=10;fillColor=#047857;strokeColor=#34d399;fontColor=#ffffff;fontSize=11;" vertex="1" parent="grp_ingestion">
-          <mxGeometry x="25" y="800" width="330" height="80" as="geometry" />
+        <mxCell id="out_parquet" parent="grp_ingestion" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=10;fillColor=#047857;strokeColor=#34d399;fontColor=#ffffff;fontSize=11;" value="Unified Melted Parquet Point Store&#xa;points_{argo, buoy, glider, adcp, ctd}.parquet&#xa;Schema: lat, lon, depth, time, variable,&#xa;value, instrument_id, instrument_type" vertex="1">
+          <mxGeometry height="80" width="330" x="25" y="800" as="geometry" />
         </mxCell>
-
-        <!-- GROUP: SERVING & APPLICATION BACKEND -->
-        <mxCell id="grp_backend" value="2. DOCKERIZED COMPUTE &amp; STANDARDS SERVING TIER" style="swimlane;whiteSpace=wrap;html=1;fillColor=#1e293b;strokeColor=#475569;fontColor=#f8fafc;fontStyle=1;fontSize=14;startSize=30;rounded=1;" vertex="1" parent="1">
-          <mxGeometry x="460" y="40" width="380" height="980" as="geometry" />
+        <mxCell id="grp_backend" parent="1" style="swimlane;whiteSpace=wrap;html=1;fillColor=#1e293b;strokeColor=#475569;fontColor=#f8fafc;fontStyle=1;fontSize=14;startSize=30;rounded=1;" value="2. DOCKERIZED COMPUTE &amp; STANDARDS SERVING TIER" vertex="1">
+          <mxGeometry height="980" width="380" x="460" y="40" as="geometry" />
         </mxCell>
-        <mxCell id="tds_srv" value="THREDDS Data Server (TDS 5.8)&#xa;[Port 8080 - Docker Container: sih_tds]&#xa;• ncWMS 1.3.0 Dynamic Layer Server&#xa;• CRS:84 Coordinate Axis Order Lock&#xa;• TIME &amp; ELEVATION 4D Slicing&#xa;• Palettes: psu-magma, viridis, rainbow&#xa;• GetCapabilities / GetMap / GetLegendGraphic&#xa;• OPeNDAP &amp; WCS Endpoints" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0c4a6e;strokeColor=#38bdf8;fontColor=#f0f9ff;fontSize=11;align=left;spacingLeft=15;" vertex="1" parent="grp_backend">
-          <mxGeometry x="25" y="50" width="330" height="150" as="geometry" />
+        <mxCell id="tds_srv" parent="grp_backend" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0c4a6e;strokeColor=#38bdf8;fontColor=#f0f9ff;fontSize=11;align=left;spacingLeft=15;" value="THREDDS Data Server (TDS 5.8)&#xa;[Port 8080 - Docker Container: sih_tds]&#xa;• ncWMS 1.3.0 Dynamic Layer Server&#xa;• CRS:84 Coordinate Axis Order Lock&#xa;• TIME &amp; ELEVATION 4D Slicing&#xa;• Palettes: psu-magma, viridis, rainbow&#xa;• GetCapabilities / GetMap / GetLegendGraphic&#xa;• OPeNDAP &amp; WCS Endpoints" vertex="1">
+          <mxGeometry height="150" width="330" x="25" y="50" as="geometry" />
         </mxCell>
-        <mxCell id="fastapi_srv" value="FastAPI REST Microservice (Python 3.12)&#xa;[Port 8000 - Docker Container: sih_backend]&#xa;High-Performance Async Ocean API" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#312e81;strokeColor=#a5b4fc;fontColor=#e0e7ff;fontSize=12;fontStyle=1;" vertex="1" parent="grp_backend">
-          <mxGeometry x="25" y="240" width="330" height="60" as="geometry" />
+        <mxCell id="fastapi_srv" parent="grp_backend" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#312e81;strokeColor=#a5b4fc;fontColor=#e0e7ff;fontSize=12;fontStyle=1;" value="FastAPI REST Microservice (Python 3.12)&#xa;[Port 8000 - Docker Container: sih_backend]&#xa;High-Performance Async Ocean API" vertex="1">
+          <mxGeometry height="60" width="330" x="25" y="240" as="geometry" />
         </mxCell>
-        <mxCell id="ep_instruments" value="GET /api/instruments&#xa;• Spatial BBox &amp; Temporal Window Filter&#xa;• Sample Data Auto-Exemption for Demos&#xa;• Aggregated Latest Time &amp; Variable List" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1e1b4b;strokeColor=#6366f1;fontColor=#e0e7ff;fontSize=10;align=left;spacingLeft=10;" vertex="1" parent="grp_backend">
-          <mxGeometry x="25" y="320" width="330" height="65" as="geometry" />
+        <mxCell id="ep_instruments" parent="grp_backend" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1e1b4b;strokeColor=#6366f1;fontColor=#e0e7ff;fontSize=10;align=left;spacingLeft=10;" value="GET /api/instruments&#xa;• Spatial BBox &amp; Temporal Window Filter&#xa;• Sample Data Auto-Exemption for Demos&#xa;• Aggregated Latest Time &amp; Variable List" vertex="1">
+          <mxGeometry height="65" width="330" x="25" y="320" as="geometry" />
         </mxCell>
-        <mxCell id="ep_profile" value="GET /api/instrument/{id}/profile&#xa;• Vertical In-Situ Depth Series Query&#xa;• 4D Bilinear Spatial &amp; Temporal Interpolation&#xa;• Real Model-vs-Obs Validation (MAE °C / PSU)&#xa;• Glider Mismatch Guard &amp; Out-of-Bounds Sentinel" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1e1b4b;strokeColor=#6366f1;fontColor=#e0e7ff;fontSize=10;align=left;spacingLeft=10;" vertex="1" parent="grp_backend">
-          <mxGeometry x="25" y="405" width="330" height="85" as="geometry" />
+        <mxCell id="ep_profile" parent="grp_backend" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1e1b4b;strokeColor=#6366f1;fontColor=#e0e7ff;fontSize=10;align=left;spacingLeft=10;" value="GET /api/instrument/{id}/profile&#xa;• Vertical In-Situ Depth Series Query&#xa;• 4D Bilinear Spatial &amp; Temporal Interpolation&#xa;• Real Model-vs-Obs Validation (MAE °C / PSU)&#xa;• Glider Mismatch Guard &amp; Out-of-Bounds Sentinel" vertex="1">
+          <mxGeometry height="85" width="330" x="25" y="405" as="geometry" />
         </mxCell>
-        <mxCell id="ep_volume" value="GET /api/volume&#xa;• 3D Subgrid Extraction from amphan_bob_real.nc&#xa;• Uniform Trilinear Resampling (e.g. 32x32x16)&#xa;• Coastline/Land Sentinel Masking (-9999.0)&#xa;• Non-Extrapolated Bathymetry Boundary Clip&#xa;• Zero-Bleed Ocean Voxel Dynamic Range Range" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1e1b4b;strokeColor=#6366f1;fontColor=#e0e7ff;fontSize=10;align=left;spacingLeft=10;" vertex="1" parent="grp_backend">
-          <mxGeometry x="25" y="510" width="330" height="95" as="geometry" />
+        <mxCell id="ep_volume" parent="grp_backend" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1e1b4b;strokeColor=#6366f1;fontColor=#e0e7ff;fontSize=10;align=left;spacingLeft=10;" value="GET /api/volume&#xa;• 3D Subgrid Extraction from amphan_bob_real.nc&#xa;• Uniform Trilinear Resampling (e.g. 32x32x16)&#xa;• Coastline/Land Sentinel Masking (-9999.0)&#xa;• Non-Extrapolated Bathymetry Boundary Clip&#xa;• Zero-Bleed Ocean Voxel Dynamic Range Range" vertex="1">
+          <mxGeometry height="95" width="330" x="25" y="510" as="geometry" />
         </mxCell>
-        <mxCell id="ep_meta" value="GET /api/variables &amp; /api/plugins &amp; /api/health&#xa;• Variable Metadata &amp; Default Palettes&#xa;• Modular Plugin Pipeline Registry (live/sample/stub)&#xa;• Container Orchestrator Health Monitor" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1e1b4b;strokeColor=#6366f1;fontColor=#e0e7ff;fontSize=10;align=left;spacingLeft=10;" vertex="1" parent="grp_backend">
-          <mxGeometry x="25" y="625" width="330" height="65" as="geometry" />
+        <mxCell id="ep_meta" parent="grp_backend" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1e1b4b;strokeColor=#6366f1;fontColor=#e0e7ff;fontSize=10;align=left;spacingLeft=10;" value="GET /api/variables &amp; /api/plugins &amp; /api/health&#xa;• Variable Metadata &amp; Default Palettes&#xa;• Modular Plugin Pipeline Registry (live/sample/stub)&#xa;• Container Orchestrator Health Monitor" vertex="1">
+          <mxGeometry height="65" width="330" x="25" y="625" as="geometry" />
         </mxCell>
-        <mxCell id="mem_cache" value="IN-MEMORY THREAD-SAFE STORE&#xa;• Shared Memory Point DataFrame Registry&#xa;• Threading Lock Protected xarray NetCDF Handle&#xa;• Sub-50ms Profile Retrieval &amp; &lt;200ms Volumetric Resampling" style="shape=process;whiteSpace=wrap;html=1;backgroundOutline=1;fillColor=#374151;strokeColor=#9ca3af;fontColor=#f3f4f6;fontSize=10;" vertex="1" parent="grp_backend">
-          <mxGeometry x="25" y="720" width="330" height="70" as="geometry" />
+        <mxCell id="mem_cache" parent="grp_backend" style="shape=process;whiteSpace=wrap;html=1;backgroundOutline=1;fillColor=#374151;strokeColor=#9ca3af;fontColor=#f3f4f6;fontSize=10;" value="IN-MEMORY THREAD-SAFE STORE&#xa;• Shared Memory Point DataFrame Registry&#xa;• Threading Lock Protected xarray NetCDF Handle&#xa;• Sub-50ms Profile Retrieval &amp; &lt;200ms Volumetric Resampling" vertex="1">
+          <mxGeometry height="70" width="330" x="25" y="720" as="geometry" />
         </mxCell>
-
-        <!-- GROUP: FRONTEND BROWSER CLIENT -->
-        <mxCell id="grp_frontend" value="3. BROWSER-NATIVE 3D INTERACTIVE PRESENTATION TIER" style="swimlane;whiteSpace=wrap;html=1;fillColor=#1e293b;strokeColor=#475569;fontColor=#f8fafc;fontStyle=1;fontSize=14;startSize=30;rounded=1;" vertex="1" parent="1">
-          <mxGeometry x="880" y="40" width="730" height="980" as="geometry" />
+        <mxCell id="grp_frontend" parent="1" style="swimlane;whiteSpace=wrap;html=1;fillColor=#1e293b;strokeColor=#475569;fontColor=#f8fafc;fontStyle=1;fontSize=14;startSize=30;rounded=1;" value="3. BROWSER-NATIVE 3D INTERACTIVE PRESENTATION TIER" vertex="1">
+          <mxGeometry height="980" width="730" x="880" y="40" as="geometry" />
         </mxCell>
-
-        <!-- Subgroup: CesiumJS Global Stage -->
-        <mxCell id="sub_cesium" value="4D Geospatial Globe Subsystem (CesiumJS 1.145)" style="swimlane;whiteSpace=wrap;html=1;fillColor=#0f172a;strokeColor=#0284c7;fontColor=#bae6fd;fontSize=12;startSize=25;rounded=1;" vertex="1" parent="grp_frontend">
-          <mxGeometry x="20" y="50" width="330" height="420" as="geometry" />
+        <mxCell id="sub_cesium" parent="grp_frontend" style="swimlane;whiteSpace=wrap;html=1;fillColor=#0f172a;strokeColor=#0284c7;fontColor=#bae6fd;fontSize=12;startSize=25;rounded=1;" value="4D Geospatial Globe Subsystem (CesiumJS 1.145)" vertex="1">
+          <mxGeometry height="420" width="330" x="20" y="50" as="geometry" />
         </mxCell>
-        <mxCell id="ces_globe" value="• 3D Terrain &amp; World Bathymetry (Asset 2426648)&#xa;• Dynamic Atmospheric Sun Shading &amp; Skybox&#xa;• Cinematic Camera Orbit &amp; Quadratic Easing&#xa;• Vertical Exaggeration Slider (1.0x - 10.0x)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontColor=#e2e8f0;fontSize=10;" vertex="1" parent="sub_cesium">
-          <mxGeometry x="10" y="30" width="310" height="70" as="geometry" />
+        <mxCell id="ces_globe" parent="sub_cesium" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontColor=#e2e8f0;fontSize=10;" value="&lt;span style=&quot;color: light-dark(rgb(0, 0, 0), rgb(255, 255, 255));&quot;&gt;• 3D Terrain &amp;amp; World Bathymetry (Asset 2426648)&lt;br&gt;• Dynamic Atmospheric Sun Shading &amp;amp; Skybox&lt;br&gt;• Cinematic Camera Orbit &amp;amp; Quadratic Easing&lt;br&gt;• Vertical Exaggeration Slider (1.0x - 10.0x)&lt;/span&gt;" vertex="1">
+          <mxGeometry height="70" width="310" x="10" y="30" as="geometry" />
         </mxCell>
-        <mxCell id="ces_wms" value="Dynamic WMS Tile Layer Integration&#xa;WebMapServiceImageryProvider (CRS:84)&#xa;Real-Time Depth &amp; Time Step Swapping" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0369a1;strokeColor=#38bdf8;fontColor=#ffffff;fontSize=10;" vertex="1" parent="sub_cesium">
-          <mxGeometry x="15" y="110" width="300" height="50" as="geometry" />
+        <mxCell id="ces_wms" parent="sub_cesium" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0369a1;strokeColor=#38bdf8;fontColor=#ffffff;fontSize=10;" value="Dynamic WMS Tile Layer Integration&#xa;WebMapServiceImageryProvider (CRS:84)&#xa;Real-Time Depth &amp; Time Step Swapping" vertex="1">
+          <mxGeometry height="50" width="300" x="15" y="110" as="geometry" />
         </mxCell>
-        <mxCell id="ces_markers" value="Interactive In-Situ CustomDataSource&#xa;Entity Billboards with Distinct Color Coding:&#xa;● Argo (#fbbf24)  ● Glider (#06b6d4)&#xa;● Moored Buoy (#f43f5e)  ● ADCP (#a855f7)&#xa;● Shipboard CTD (#10b981)&#xa;ScreenSpaceEventHandler Click Selection" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#065f46;strokeColor=#34d399;fontColor=#ffffff;fontSize=10;align=left;spacingLeft=10;" vertex="1" parent="sub_cesium">
-          <mxGeometry x="15" y="175" width="300" height="95" as="geometry" />
+        <mxCell id="ces_markers" parent="sub_cesium" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#065f46;strokeColor=#34d399;fontColor=#ffffff;fontSize=10;align=left;spacingLeft=10;" value="Interactive In-Situ CustomDataSource&#xa;Entity Billboards with Distinct Color Coding:&#xa;● Argo (#fbbf24)  ● Glider (#06b6d4)&#xa;● Moored Buoy (#f43f5e)  ● ADCP (#a855f7)&#xa;● Shipboard CTD (#10b981)&#xa;ScreenSpaceEventHandler Click Selection" vertex="1">
+          <mxGeometry height="95" width="300" x="15" y="175" as="geometry" />
         </mxCell>
-        <mxCell id="ces_offline" value="ZERO-HANG OFFLINE RESILIENCE&#xa;• 6s Timeout Interceptor on External CDN/Ion&#xa;• Instant Fallback to Local NaturalEarthII Tiles&#xa;• Offline EllipsoidTerrainProvider&#xa;• Runtime Disconnect Event Recovery" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#7f1d1d;strokeColor=#f87171;fontColor=#fee2e2;fontSize=10;fontStyle=1;" vertex="1" parent="sub_cesium">
-          <mxGeometry x="15" y="285" width="300" height="80" as="geometry" />
+        <mxCell id="ces_offline" parent="sub_cesium" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#7f1d1d;strokeColor=#f87171;fontColor=#fee2e2;fontSize=10;fontStyle=1;" value="ZERO-HANG OFFLINE RESILIENCE&#xa;• 6s Timeout Interceptor on External CDN/Ion&#xa;• Instant Fallback to Local NaturalEarthII Tiles&#xa;• Offline EllipsoidTerrainProvider&#xa;• Runtime Disconnect Event Recovery" vertex="1">
+          <mxGeometry height="80" width="300" x="15" y="285" as="geometry" />
         </mxCell>
-
-        <!-- Subgroup: Three.js Volumetric Engine -->
-        <mxCell id="sub_three" value="Subsurface 3D Volumetric Engine (Three.js 0.186)" style="swimlane;whiteSpace=wrap;html=1;fillColor=#0f172a;strokeColor=#7c3aed;fontColor=#ddd6fe;fontSize=12;startSize=25;rounded=1;" vertex="1" parent="grp_frontend">
-          <mxGeometry x="380" y="50" width="330" height="420" as="geometry" />
+        <mxCell id="sub_three" parent="grp_frontend" style="swimlane;whiteSpace=wrap;html=1;fillColor=#0f172a;strokeColor=#7c3aed;fontColor=#ddd6fe;fontSize=12;startSize=25;rounded=1;" value="Subsurface 3D Volumetric Engine (Three.js 0.186)" vertex="1">
+          <mxGeometry height="420" width="330" x="380" y="50" as="geometry" />
         </mxCell>
-        <mxCell id="three_ray" value="GPU Direct Volume Raymarching (GLSL)&#xa;• 3D Floating-Point Texture (Data3DTexture)&#xa;• Smooth Multi-Stop Transfer Function Shader&#xa;• Land Sentinel Masking (val &lt;= -9998.5 -&gt; discard)&#xa;• Zero-Bleed Inland Coastline Transparency" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#4c1d95;strokeColor=#a78bfa;fontColor=#ede9fe;fontSize=10;align=left;spacingLeft=10;" vertex="1" parent="sub_three">
-          <mxGeometry x="15" y="35" width="300" height="85" as="geometry" />
+        <mxCell id="three_ray" parent="sub_three" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#4c1d95;strokeColor=#a78bfa;fontColor=#ede9fe;fontSize=10;align=left;spacingLeft=10;" value="GPU Direct Volume Raymarching (GLSL)&#xa;• 3D Floating-Point Texture (Data3DTexture)&#xa;• Smooth Multi-Stop Transfer Function Shader&#xa;• Land Sentinel Masking (val &lt;= -9998.5 -&gt; discard)&#xa;• Zero-Bleed Inland Coastline Transparency" vertex="1">
+          <mxGeometry height="85" width="300" x="15" y="35" as="geometry" />
         </mxCell>
-        <mxCell id="three_iso" value="Marching Cubes Isosurface Extraction&#xa;• Real-Time Dynamic Isosurface Polygons&#xa;• Phantom Artifact Prevention: If any voxel&#xa;  corner is Land Sentinel, forces vertex +99999&#xa;• Interactive Thermal Threshold Slider" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#4c1d95;strokeColor=#a78bfa;fontColor=#ede9fe;fontSize=10;align=left;spacingLeft=10;" vertex="1" parent="sub_three">
-          <mxGeometry x="15" y="135" width="300" height="85" as="geometry" />
+        <mxCell id="three_iso" parent="sub_three" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#4c1d95;strokeColor=#a78bfa;fontColor=#ede9fe;fontSize=10;align=left;spacingLeft=10;" value="Marching Cubes Isosurface Extraction&#xa;• Real-Time Dynamic Isosurface Polygons&#xa;• Phantom Artifact Prevention: If any voxel&#xa;  corner is Land Sentinel, forces vertex +99999&#xa;• Interactive Thermal Threshold Slider" vertex="1">
+          <mxGeometry height="85" width="300" x="15" y="135" as="geometry" />
         </mxCell>
-        <mxCell id="three_bloom" value="Post-Processing Visual Pipeline&#xa;• EffectComposer + RenderPass&#xa;• UnrealBloomPass (Cyclonic Core Thermal Glow)&#xa;• OrbitControls with Damping (smooth 60 FPS)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#4c1d95;strokeColor=#a78bfa;fontColor=#ede9fe;fontSize=10;align=left;spacingLeft=10;" vertex="1" parent="sub_three">
-          <mxGeometry x="15" y="235" width="300" height="70" as="geometry" />
+        <mxCell id="three_bloom" parent="sub_three" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#4c1d95;strokeColor=#a78bfa;fontColor=#ede9fe;fontSize=10;align=left;spacingLeft=10;" value="Post-Processing Visual Pipeline&#xa;• EffectComposer + RenderPass&#xa;• UnrealBloomPass (Cyclonic Core Thermal Glow)&#xa;• OrbitControls with Damping (smooth 60 FPS)" vertex="1">
+          <mxGeometry height="70" width="300" x="15" y="235" as="geometry" />
         </mxCell>
-        <mxCell id="three_perf" value="Live WebGL Performance Counter &amp; FPS Badge&#xa;Zero Memory-Leak Dynamic Modal Lifecycle" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1e293b;strokeColor=#64748b;fontColor=#cbd5e1;fontSize=10;" vertex="1" parent="sub_three">
-          <mxGeometry x="15" y="320" width="300" height="45" as="geometry" />
+        <mxCell id="three_perf" parent="sub_three" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1e293b;strokeColor=#64748b;fontColor=#cbd5e1;fontSize=10;" value="Live WebGL Performance Counter &amp; FPS Badge&#xa;Zero Memory-Leak Dynamic Modal Lifecycle" vertex="1">
+          <mxGeometry height="45" width="300" x="15" y="320" as="geometry" />
         </mxCell>
-
-        <!-- Subgroup: Analytical & Public Interaction Layer -->
-        <mxCell id="sub_analytics" value="Analytical Profiling, Controls &amp; Guided Storytelling" style="swimlane;whiteSpace=wrap;html=1;fillColor=#0f172a;strokeColor=#059669;fontColor=#a7f3d0;fontSize=12;startSize=25;rounded=1;" vertex="1" parent="grp_frontend">
-          <mxGeometry x="20" y="490" width="690" height="470" as="geometry" />
+        <mxCell id="sub_analytics" parent="grp_frontend" style="swimlane;whiteSpace=wrap;html=1;fillColor=#0f172a;strokeColor=#059669;fontColor=#a7f3d0;fontSize=12;startSize=25;rounded=1;" value="Analytical Profiling, Controls &amp; Guided Storytelling" vertex="1">
+          <mxGeometry height="470" width="690" x="20" y="490" as="geometry" />
         </mxCell>
-        <mxCell id="plot_modal" value="Plotly.js Scientific Validation Profile Modal&#xa;• Multi-Parameter Vertical Ocean Axis (Depth 0 - 2000m, Reversed Y-Axis)&#xa;• Simultaneous Parameter Traces: Temp (°C), Salinity (PSU), Chlorophyll-a (mg/m³), Currents (m/s)&#xa;• Ground-Truth Observed Points (Solid) vs. Collocated Model Reanalysis (Dashed)&#xa;• Live Model Accuracy Header Banner: Displays Real Mean Absolute Error (MAE)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#064e3b;strokeColor=#10b981;fontColor=#ecfdf5;fontSize=11;align=left;spacingLeft=15;" vertex="1" parent="sub_analytics">
-          <mxGeometry x="20" y="40" width="650" height="90" as="geometry" />
+        <mxCell id="plot_modal" parent="sub_analytics" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#064e3b;strokeColor=#10b981;fontColor=#ecfdf5;fontSize=11;align=left;spacingLeft=15;" value="Plotly.js Scientific Validation Profile Modal&#xa;• Multi-Parameter Vertical Ocean Axis (Depth 0 - 2000m, Reversed Y-Axis)&#xa;• Simultaneous Parameter Traces: Temp (°C), Salinity (PSU), Chlorophyll-a (mg/m³), Currents (m/s)&#xa;• Ground-Truth Observed Points (Solid) vs. Collocated Model Reanalysis (Dashed)&#xa;• Live Model Accuracy Header Banner: Displays Real Mean Absolute Error (MAE)" vertex="1">
+          <mxGeometry height="90" width="650" x="20" y="40" as="geometry" />
         </mxCell>
-        <mxCell id="ctrl_sidebar" value="Dynamic Colorbar &amp; Forecaster Controls (GSAP Animated Frosted Glass Drawer)&#xa;• Palette Selector: psu-magma (def), viridis, x-Rainbow, RdBu, Blues, Heat&#xa;• Numeric Range Overrides &amp; Logarithmic Scale Guard (disabled if min &lt;= 0)&#xa;• Layer Alpha Opacity Slider (0-100%) &amp; Dynamic ncWMS GetLegendGraphic Image" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1e293b;strokeColor=#475569;fontColor=#e2e8f0;fontSize=11;align=left;spacingLeft=15;" vertex="1" parent="sub_analytics">
-          <mxGeometry x="20" y="145" width="650" height="80" as="geometry" />
+        <mxCell id="ctrl_sidebar" parent="sub_analytics" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1e293b;strokeColor=#475569;fontColor=#e2e8f0;fontSize=11;align=left;spacingLeft=15;" value="Dynamic Colorbar &amp; Forecaster Controls (GSAP Animated Frosted Glass Drawer)&#xa;• Palette Selector: psu-magma (def), viridis, x-Rainbow, RdBu, Blues, Heat&#xa;• Numeric Range Overrides &amp; Logarithmic Scale Guard (disabled if min &lt;= 0)&#xa;• Layer Alpha Opacity Slider (0-100%) &amp; Dynamic ncWMS GetLegendGraphic Image" vertex="1">
+          <mxGeometry height="80" width="650" x="20" y="145" as="geometry" />
         </mxCell>
-        <mxCell id="ctrl_time" value="Spatiotemporal 4D Navigation Controls&#xa;• XML GetCapabilities Dynamic Time &amp; Depth Ingestion (13 Days x 50 Levels)&#xa;• 1000ms Interval Animation Player with Play / Pause / Step Controls&#xa;• Depth Preset Shortcuts: Surface (0m), Thermocline (100m), Deep Water (500m)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1e293b;strokeColor=#475569;fontColor=#e2e8f0;fontSize=11;align=left;spacingLeft=15;" vertex="1" parent="sub_analytics">
-          <mxGeometry x="20" y="240" width="650" height="80" as="geometry" />
+        <mxCell id="ctrl_time" parent="sub_analytics" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1e293b;strokeColor=#475569;fontColor=#e2e8f0;fontSize=11;align=left;spacingLeft=15;" value="Spatiotemporal 4D Navigation Controls&#xa;• XML GetCapabilities Dynamic Time &amp; Depth Ingestion (13 Days x 50 Levels)&#xa;• 1000ms Interval Animation Player with Play / Pause / Step Controls&#xa;• Depth Preset Shortcuts: Surface (0m), Thermocline (100m), Deep Water (500m)" vertex="1">
+          <mxGeometry height="80" width="650" x="20" y="240" as="geometry" />
         </mxCell>
-        <mxCell id="tour_panel" value="Dual-Mode Scientific Outreach Engine (Guided Narrative Tour)&#xa;• Mode Switch: Operational Forecaster Mode &lt;==&gt; Public Educational Tour Mode&#xa;• 5-Beat Scientific Storyline of Super Cyclone Amphan:&#xa;  1. Warm Pool Incubator (SST &gt; 31°C)  2. Rapid Intensification Peak  3. Landfall at Sundarbans&#xa;  4. Ocean Cold Wake Upwelling (CTA to 3D Volume)  5. Phytoplankton Bloom (CTA to BGC-Argo #2902264)&#xa;• Automated Camera Flight Choreography with Narrative Overlays" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#701a75;strokeColor=#f472b6;fontColor=#fdf2f8;fontSize=11;align=left;spacingLeft=15;" vertex="1" parent="sub_analytics">
-          <mxGeometry x="20" y="335" width="650" height="110" as="geometry" />
+        <mxCell id="tour_panel" parent="sub_analytics" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#701a75;strokeColor=#f472b6;fontColor=#fdf2f8;fontSize=11;align=left;spacingLeft=15;" value="Dual-Mode Scientific Outreach Engine (Guided Narrative Tour)&#xa;• Mode Switch: Operational Forecaster Mode &lt;==&gt; Public Educational Tour Mode&#xa;• 5-Beat Scientific Storyline of Super Cyclone Amphan:&#xa;  1. Warm Pool Incubator (SST &gt; 31°C)  2. Rapid Intensification Peak  3. Landfall at Sundarbans&#xa;  4. Ocean Cold Wake Upwelling (CTA to 3D Volume)  5. Phytoplankton Bloom (CTA to BGC-Argo #2902264)&#xa;• Automated Camera Flight Choreography with Narrative Overlays" vertex="1">
+          <mxGeometry height="110" width="650" x="20" y="335" as="geometry" />
         </mxCell>
-
-        <!-- CONNECTIONS & DATA FLOWS -->
-        <mxCell id="e1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#38bdf8;strokeWidth=2;" edge="1" parent="1" source="ingest_proc" target="out_netcdf">
+        <mxCell id="e1" edge="1" parent="1" source="ingest_proc" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#38bdf8;strokeWidth=2;" target="out_netcdf">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#34d399;strokeWidth=2;" edge="1" parent="1" source="ingest_proc" target="out_parquet">
+        <mxCell id="e2" edge="1" parent="1" source="ingest_proc" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#34d399;strokeWidth=2;" target="out_parquet">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#38bdf8;strokeWidth=2;" edge="1" parent="1" source="out_netcdf" target="tds_srv">
+        <mxCell id="e3" edge="1" parent="1" source="out_netcdf" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#38bdf8;strokeWidth=2;" target="tds_srv">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
               <mxPoint x="430" y="730" />
@@ -134,7 +120,7 @@
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="e4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#a5b4fc;strokeWidth=2;" edge="1" parent="1" source="out_parquet" target="fastapi_srv">
+        <mxCell id="e4" edge="1" parent="1" source="out_parquet" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#a5b4fc;strokeWidth=2;" target="fastapi_srv">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
               <mxPoint x="440" y="840" />
@@ -142,7 +128,7 @@
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="e5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#38bdf8;strokeWidth=2;" edge="1" parent="1" source="tds_srv" target="ces_wms">
+        <mxCell id="e5" edge="1" parent="1" source="tds_srv" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#38bdf8;strokeWidth=2;" target="ces_wms">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
               <mxPoint x="860" y="125" />
@@ -150,7 +136,7 @@
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="e6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#6366f1;strokeWidth=2;" edge="1" parent="1" source="ep_instruments" target="ces_markers">
+        <mxCell id="e6" edge="1" parent="1" source="ep_instruments" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#6366f1;strokeWidth=2;" target="ces_markers">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
               <mxPoint x="865" y="352" />
@@ -158,7 +144,7 @@
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="e7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#a78bfa;strokeWidth=2;" edge="1" parent="1" source="ep_volume" target="three_ray">
+        <mxCell id="e7" edge="1" parent="1" source="ep_volume" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#a78bfa;strokeWidth=2;" target="three_ray">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
               <mxPoint x="860" y="557" />
@@ -167,7 +153,7 @@
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="e8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#10b981;strokeWidth=2;" edge="1" parent="1" source="ep_profile" target="plot_modal">
+        <mxCell id="e8" edge="1" parent="1" source="ep_profile" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#10b981;strokeWidth=2;" target="plot_modal">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
               <mxPoint x="850" y="447" />
@@ -175,7 +161,6 @@
             </Array>
           </mxGeometry>
         </mxCell>
-
       </root>
     </mxGraphModel>
   </diagram>
